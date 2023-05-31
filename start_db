@@ -1,0 +1,8 @@
+#!/bin/bash
+
+export MONGO_USER=tarpaulin
+export MONGO_DB_NAME=tarpaulin
+export MONGO_AUTH_DB_NAME=tarpaulin
+export MONGO_PASSWORD=hunter2
+
+npm run dev 
