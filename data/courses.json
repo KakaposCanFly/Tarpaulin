@@ -1,0 +1,86 @@
+[
+    {
+        "subject": "CS",
+        "number": "493",
+        "title": "Cloud Application Development",
+        "term": "sp22",
+        "instructorId": 123
+    },
+    {
+        "subject": "CS",
+        "number": "492",
+        "title": "Mobile Application Development",
+        "term": "wi22",
+        "instructorId": 123
+    },
+    {
+        "subject": "CS",
+        "number": "362",
+        "title": "Software Engineering II",
+        "term": "sp22",
+        "instructorId": 123
+    },
+    {
+        "subject": "CS",
+        "number": "290",
+        "title": "Web Development",
+        "term": "sp22",
+        "instructorId": 123
+    },
+    {
+        "subject": "PSY",
+        "number": "499",
+        "title": "Psychology of Sleep",
+        "term": "sp22",
+        "instructorId": 123
+    },
+    {
+        "subject": "MTH",
+        "number": "231",
+        "title": "Elements of Discerete Mathematics I",
+        "term": "sp22",
+        "instructorId": 45
+    },
+    {
+        "subject": "MTH",
+        "number": "252",
+        "title": "Integral Calculus",
+        "term": "fll22",
+        "instructorId": 45
+    },
+    {
+        "subject": "WR",
+        "number": "327",
+        "title": "Technical Writing",
+        "term": "wi22",
+        "instructorId": 4
+    }, 
+    {
+        "subject": "ST",
+        "number": "314",
+        "title": "Introduction to Statistics for Engineers",
+        "term": "fll22",
+        "instructorId": 3
+    }, 
+    {
+        "subject": "CS",
+        "number": "444",
+        "title": "Operating Systems II",
+        "term": "fll22",
+        "instructorId": 2
+    }, 
+    {
+        "subject": "CS",
+        "number": "261",
+        "title": "Data Structures",
+        "term": "fll22",
+        "instructorId": 7
+    }, 
+    {
+        "subject": "CS",
+        "number": "161",
+        "title": "Introduction to Computer Science I",
+        "term": "fll22",
+        "instructorId": 5
+    }
+]
