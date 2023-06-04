@@ -15,7 +15,8 @@ async function getCoursesPage(page, url, params){
     page = page < 1 ? 1 : page 
     const offset = (page - 1) * pageSize
 
-    const results = await collection.find({}).sort({_id: 1}).skip(offset).limit(pageSize).toArray()
+    //how to do a conditional query ?
+    const results = await collection.find({subject: params.subject, number: params.number, term: params.term}).sort({_id: 1}).skip(offset).limit(pageSize).toArray()
 
     //hateaos links for next pages 
     if (page < lastPage) {
@@ -49,5 +50,8 @@ router.get('/', async function (req, res) {
     const courses = await getCoursesPage(parseInt(req.query.page) || 1, "", params)
 
     res.status(200).json({courses})
+
 })
+
+
 
