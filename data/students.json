@@ -1,0 +1,33 @@
+[
+    {
+        "name": "Jane Doe",
+        "email": "doej@oregonstate.edu",
+        "password": "hunter2",
+        "role": "student"
+    },
+    {
+        "name": "Ragini Dindukurthi",
+        "email": "dindukur@oregonstate.edu",
+        "password": "hunter2",
+        "role": "student"
+    }, 
+    {
+        "name": "Andrea Tongsak",
+        "email": "tongsaka@oregonstate.edu",
+        "password": "hunter2",
+        "role": "student"
+    }, 
+    {
+        "name": "Taite Dodson",
+        "email": "dodsonta@oregonstate.edu",
+        "password": "hunter2",
+        "role": "student"
+    },
+    {
+        "name": "Cole Theodore",
+        "email": "theodoco@oregonstate.edu",
+        "password": "hunter2",
+        "role": "student"
+    }
+
+]
