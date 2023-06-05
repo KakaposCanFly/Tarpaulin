@@ -5,7 +5,8 @@ const { validateAgainstSchema } = require('../lib/validation');
 const {
     insertNewAssignment,
     getAssignmentById,
-    AssignmentSchema
+    AssignmentSchema,
+    getAssignmentsPage
 } = require('../models/assignment');
 
 exports.router = router;
@@ -27,6 +28,24 @@ router.post('/', async function (req, res, next) {
         res.status(400).json({
             error: "Request body is not a valid assignment"
         })
+    }
+})
+
+router.get('/', async function (req, res, next) {
+    try {
+        const assignmentPage = await getAssignmentsPage(req.query.page || 1)
+        assignmentPage.links = {}
+        if (assignmentPage.page < assignmentPage.totalPages) {
+            assignmentPage.links.nextPage = `/assignments?page=${assignmentPage.page + 1}`
+            assignmentPage.links.lastPage = `/assignments?page=${assignmentPage.totalPages}`
+        }
+        if (assignmentPage.page > 1) {
+            assignmentPage.links.prevPage = `/assignments?page=${assignmentPage.page - 1}`
+            assignmentPage.links.firstPage = '/assignments?page=1'
+        }
+        res.status(200).json(assignmentPage)
+    } catch (err) {
+        next(err)
     }
 })
 
