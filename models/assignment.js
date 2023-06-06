@@ -26,6 +26,24 @@ exports.getAssignmentById = async function (id) {
     return result[0]
 }
 
+exports.updateAssignmentById = async function (id, assignment) {
+    assignment = extractValidFields(assignment, AssignmentSchema)
+    const db = getDb()
+    const collection = db.collection("assignments")
+    const result = await collection.replaceOne(
+        { _id: new ObjectId(id) },
+        assignment
+    )
+    return result.matchedCount > 0
+}
+
+exports.deleteAssignmentById = async function (id) {
+    const db = getDb()
+    const collection = db.collection("assignments")
+    const result = await collection.deleteOne({ _id: new ObjectId(id) })
+    return result.deletedCount > 0
+}
+
 //exports.getAssignmentsPage = async function (pageNum) {
 //    const db = getDb()
 //    const collection = db.collection("assignments")
