@@ -8,7 +8,8 @@ const courseSchema = {
     number: {required: true},
     title: {required: true},
     term: {required: true},
-    instructorId: {required: true}
+    instructorId: {required: true},
+    students: {required: true}
 }
 
 exports.courseSchema = courseSchema

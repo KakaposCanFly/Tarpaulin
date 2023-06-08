@@ -3,31 +3,50 @@
         "name": "Jane Doe",
         "email": "doej@oregonstate.edu",
         "password": "hunter2",
-        "role": "student"
+        "role": "student", 
+        "courses": []
     },
     {
         "name": "Ragini Dindukurthi",
         "email": "dindukur@oregonstate.edu",
         "password": "hunter2",
-        "role": "student"
+        "role": "student",
+        "courses": []
     }, 
     {
         "name": "Andrea Tongsak",
         "email": "tongsaka@oregonstate.edu",
         "password": "hunter2",
-        "role": "student"
+        "role": "student",
+        "courses": []
     }, 
     {
         "name": "Taite Dodson",
         "email": "dodsonta@oregonstate.edu",
         "password": "hunter2",
-        "role": "student"
+        "role": "student",
+        "courses": []
     },
     {
         "name": "Cole Theodore",
         "email": "theodoco@oregonstate.edu",
         "password": "hunter2",
-        "role": "student"
+        "role": "student",
+        "courses": []
+    },
+    {
+        "name": "Rob Hess",
+        "email": "hessro@oregonstate.edu",
+        "password": "hunter2",
+        "role": "instructor",
+        "courses": []
+    },
+    {
+        "name": "God",
+        "email": "god@oregonstate.edu",
+        "password": "hunter2",
+        "role": "admin",
+        "courses": []
     }
 
 ]

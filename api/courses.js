@@ -1,8 +1,10 @@
-const router = require('express').Router();
+const router = require('express').Router()
 const { getDb } = require("../lib/mongo")
 const { ObjectId } = require("mongodb")
-const { courseSchema } = require("../models/course");
-const { validateAgainstSchema } = require('../lib/validation');
+const { courseSchema } = require("../models/course")
+const { validateAgainstSchema } = require('../lib/validation')
+const fs = require("fs")
+const fastcsv = require("fast-csv")
 
 exports.router = router;
 
@@ -10,7 +12,7 @@ async function getCoursesPage(page, url, query){
     const db = getDb()
     const collection = db.collection('courses')
 
-    const init_count = await collection.find(query)
+    const init_count = await collection.find(query).toArray()
 
     //count num of courses 
     const count = init_count.length
@@ -33,7 +35,6 @@ async function getCoursesPage(page, url, query){
         links.firstPage = `/courses?page=1&${url}`
     }
 
-    //fix null in the last page 
     return {
         courses: results, 
         page: page, 
@@ -52,10 +53,27 @@ async function getCourseById(courseid) {
     const course = await collection.find({_id: new ObjectId(courseid)}).toArray()
 
     const results = {
-        course: course
+        course: course[0]
     }
 
     return results; 
+}
+
+async function getCourseRoster(courseid) {
+    const db = getDb()
+    const collection = db.collection('courses')
+
+    const course = await collection.find({_id: new ObjectId(courseid)}).toArray()
+    const studentIds = course[0].students 
+    const studentCollection = db.collection('students')
+    var roster = ""
+   
+    for(var i = 0; i < studentIds.length; i++){
+        var student = await studentCollection.find({_id: new ObjectId(studentIds[i])}).toArray()
+        roster = roster + `${studentIds[i]},${student[0].name},${student[0].email} `
+    }
+
+    return roster;
 }
 
 /*
@@ -78,7 +96,6 @@ router.get('/', async function (req, res) {
     }
 
     const courses = await getCoursesPage(parseInt(req.query.page) || 1, "", query)
-    console.log(courses.courses)
     res.status(200).json({courses})
 
 })
@@ -191,8 +208,26 @@ router.delete("/:courseid", async function (req, res, next){
 router.get("/:courseid/students", async function (req, res, next){
 
     if(ObjectId.isValid(req.params.courseid)){
+        var students = []
 
-        res.status(200).json({students: "students"})
+        const db = getDb()
+        const collection = db.collection("students")
+
+        const course = await getCourseById(req.params.courseid)
+        const studentsIds = course.course.students
+
+        if(studentsIds.length > 0){
+            for(var i = 0; i < studentsIds.length; i++){
+                var student = await collection.find({_id: new ObjectId(studentsIds[i])}).toArray()
+                students.push(student[0])
+            }
+    
+            res.status(200).json({students: students})
+        }
+        else{
+            next()
+        }
+        
     }
     else{
         next()
@@ -205,7 +240,23 @@ router.get("/:courseid/students", async function (req, res, next){
 router.post("/:courseid/students", async function (req, res, next){
 
     if(ObjectId.isValid(req.params.courseid)){
+        const db = getDb()
+        const collection = db.collection("courses")
+        var updateAddStatus = 0
+        var updateRemoveStatus = 0
+
         if((req.body.add && req.body.add.length > 0) || (req.body.remove && req.body.remove.length > 0)){
+
+            //if student needs to be added
+            if(req.body.add){
+                updateAddStatus = await collection.updateOne({_id: new ObjectId(req.params.courseid)}, {$push: {students: {$each: req.body.add}}})
+            }
+
+            //if student needs to removed
+            if(req.body.remove){
+                updateRemoveStatus = await collection.updateOne({_id: new ObjectId(req.params.courseid)}, {$pull: {students: {$in: req.body.remove}}})
+            }
+
             res.status(200).end()
         }
         else{
@@ -221,12 +272,17 @@ router.post("/:courseid/students", async function (req, res, next){
 /*
  * Route to fetch a CSV file containing list of students enrolled in the course, needs authentication. 
  */
+//idk what im doing here, how to send the csv line by line to user? 
 router.get("/:courseid/roster", async function (req, res, next){
 
     if(ObjectId.isValid(req.params.courseid)){
         //turn roster into a csv 
+        var roster = await getCourseRoster(req.params.courseid)
 
-        res.status(200).type("csv").send()
+        roster = roster.split(" ")
+        
+        console.log(roster)
+        res.status(200).type("csv").send(roster)
     }
     else{
         next()
@@ -236,7 +292,9 @@ router.get("/:courseid/roster", async function (req, res, next){
 /*
  * Route to fetch list of Assignments for the course.  
  */
+//this endpoint isn't working at all, says 404?
 router.get("/:courseid/assignments", async function (req, res, next){
+    console.log("here") //this is printing out 
 
     if(ObjectId.isValid(req.params.courseid)){
         const db = getDb()
