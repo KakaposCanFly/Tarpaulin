@@ -1,0 +1,29 @@
+[
+    {
+        "courseId": "6480d9c4351c3d29c4249d63",
+        "title": "Assignment 1: API Design and Server Implementation",
+        "points": 90,
+        "due": "2023-04-24T17:00:00-07:00"
+    }, 
+    {
+        "courseId": "6480d9c4351c3d29c4249d63",
+        "title": "Assignment 2: API Data Storage",
+        "points": 100,
+        "due": "2023-05-08T17:00:00-07:00"
+    }, 
+    {
+        "courseId": "6480d9c4351c3d29c4249d63",
+        "title": "Assignment 3: API Authentication and Authorization",
+        "points": 100,
+        "due": "2023-05-23T17:00:00-07:00"
+    }, 
+    {
+        "courseId": "6480d9c4351c3d29c4249d63",
+        "title": "Assignment 4: File Uploads and Offline Work",
+        "points": 100,
+        "due": "2023-06-05T17:00:00-07:00"
+    } 
+
+
+
+]
