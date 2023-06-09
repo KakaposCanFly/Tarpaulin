@@ -70,7 +70,7 @@ async function getCourseRoster(courseid) {
    
     for(var i = 0; i < studentIds.length; i++){
         var student = await studentCollection.find({_id: new ObjectId(studentIds[i])}).toArray()
-        roster = roster + `${studentIds[i]},${student[0].name},${student[0].email} `
+        roster = roster + `${studentIds[i]},${student[0].name},${student[0].email}\n`
     }
 
     return roster;
@@ -279,9 +279,7 @@ router.get("/:courseid/roster", async function (req, res, next){
         //turn roster into a csv 
         var roster = await getCourseRoster(req.params.courseid)
 
-        roster = roster.split(" ")
-        
-        console.log(roster)
+        // roster = roster.split(" ")
         res.status(200).type("csv").send(roster)
     }
     else{
@@ -292,15 +290,13 @@ router.get("/:courseid/roster", async function (req, res, next){
 /*
  * Route to fetch list of Assignments for the course.  
  */
-//this endpoint isn't working at all, says 404?
 router.get("/:courseid/assignments", async function (req, res, next){
-    console.log("here") //this is printing out 
 
     if(ObjectId.isValid(req.params.courseid)){
         const db = getDb()
         const collection = db.collection("assignments")
 
-        const assignments = await collection.find({courseId: new ObjectId(req.params.courseid)})
+        const assignments = await collection.find({courseId: new ObjectId(req.params.courseid)}).toArray()
         if(assignments.length > 0){
             res.status(200).json({
                 assignments: assignments
