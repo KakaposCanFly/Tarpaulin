@@ -242,6 +242,7 @@ router.post("/:courseid/students", async function (req, res, next){
     if(ObjectId.isValid(req.params.courseid)){
         const db = getDb()
         const collection = db.collection("courses")
+        const studentsCollection = db.collection("students")
         var updateAddStatus = 0
         var updateRemoveStatus = 0
 
@@ -250,13 +251,19 @@ router.post("/:courseid/students", async function (req, res, next){
             //if student needs to be added
             if(req.body.add){
                 updateAddStatus = await collection.updateOne({_id: new ObjectId(req.params.courseid)}, {$push: {students: {$each: req.body.add}}})
+                for (var i = 0; i < req.body.add.length; i++){
+                    await studentsCollection.updateOne({_id: new ObjectId(req.body.add[i])}, {$push: {courses: new ObjectId(req.params.courseid)}})
+                }
             }
 
             //if student needs to removed
             if(req.body.remove){
                 updateRemoveStatus = await collection.updateOne({_id: new ObjectId(req.params.courseid)}, {$pull: {students: {$in: req.body.remove}}})
+                for (var i = 0; i < req.body.remove.length; i++){
+                    await studentsCollection.updateOne({_id: new ObjectId(req.body.remove[i])}, {$pull: {courses: new ObjectId(req.params.courseid)}})
+                }
             }
-
+            
             res.status(200).end()
         }
         else{
