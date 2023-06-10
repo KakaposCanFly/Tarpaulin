@@ -42,6 +42,34 @@
         "courses": []
     },
     {
+        "name": "Raffaele De Amicis",
+        "email": "deamicir@oregonstate.edu",
+        "password": "hunter2",
+        "role": "instructor",
+        "courses": []
+    },
+    {
+        "name": "Stefan Lee",
+        "email": "leestef@oregonstate.edu",
+        "password": "hunter2",
+        "role": "instructor",
+        "courses": []
+    },
+    {
+        "name": "Taylor Swift",
+        "email": "tswift@oregonstate.edu",
+        "password": "hunter2",
+        "role": "admin",
+        "courses": []
+    },
+    {
+        "name": "Benny Beaver",
+        "email": "beaverb@oregonstate.edu",
+        "password": "hunter2",
+        "role": "admin",
+        "courses": []
+    },
+    {
         "name": "God",
         "email": "god@oregonstate.edu",
         "password": "hunter2",
