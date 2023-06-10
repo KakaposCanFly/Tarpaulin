@@ -15,6 +15,7 @@ exports.insertNewAssignment = async function (assignment) {
     assignment = extractValidFields(assignment, AssignmentSchema)
     const db = getDb()
     const collection = db.collection("assignments")
+    assignment.courseId = new ObjectId(assignment.courseId)
     const result = await collection.insertOne(assignment)
     return result.insertedId
 }
@@ -30,6 +31,7 @@ exports.updateAssignmentById = async function (id, assignment) {
     assignment = extractValidFields(assignment, AssignmentSchema)
     const db = getDb()
     const collection = db.collection("assignments")
+    assignment.courseId = new ObjectId(assignment.courseId)
     const result = await collection.replaceOne(
         { _id: new ObjectId(id) },
         assignment
@@ -43,6 +45,20 @@ exports.deleteAssignmentById = async function (id) {
     const result = await collection.deleteOne({ _id: new ObjectId(id) })
     return result.deletedCount > 0
 }
+
+async function bulkInsertNewAssignments(assignments, courseId) {
+    const assignmentsToInsert = assignments.map(function (assignments) {
+        return extractValidFields(assignments, AssignmentSchema)
+    })
+    for (var i = 0; i < assignmentsToInsert.length; i++) {
+        assignmentsToInsert[i].courseId = new ObjectId(courseId)
+    }
+    const db = getDb()
+    const collection = db.collection('assignments')
+    const result = await collection.insertMany(assignmentsToInsert)
+    return result.insertedIds
+}
+exports.bulkInsertNewAssignments = bulkInsertNewAssignments
 
 exports.getAssignmentsPage = async function (pageNum) {
    const db = getDb()
