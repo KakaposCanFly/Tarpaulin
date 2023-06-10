@@ -1,24 +1,50 @@
 /*
 **  
-**  Note: These are temporary endpoints for testing. 
-**
+**  Note: These are STILL temporary endpoints for testing. 
+**        The only permanent endpoint is `update`
 */
 
 
 const router = require('express').Router();
 const { getDb } = require("../lib/mongo")
 const { ObjectId } = require("mongodb")
+const { validateAgainstSchema } = require('../lib/validation');
+const { 
+  getSubmissionById,
+  SubmissionUpdateSchema,
+  updateSubmissionById,
+  deleteSubmissionById,
+  getDownloadStreamByFilename
+} = require('../models/submission');
 
 exports.router = router;
+
+/*
+ * Temporary endpoint to retreive ("download") files
+ */
+// router.get('/files/:filename', function (req, res, next) {
+//   getDownloadStreamByFilename(req.params.filename)
+//       .on("error", function (err) {
+//           if (err.code === "ENOENT") {
+//               next()
+//           } else {
+//               next(err)
+//           }
+//       })
+//       .on("file", function (file) {
+//           res.status(200).type(file.metadata.contentType)
+//       })
+//       .pipe(res)
+// })
 
 /*
  * Route to return a list of all submissions.
  */
 router.get('/', async function (req, res) {
-
+    const timestamp = new Date().toISOString()
+    console.log("Timestampe: ", timestamp)
     const db = getDb()
     const collection = db.collection("submissions")  
-
     try {
         const submissions = await collection.find({}).toArray()
         res.status(200).send({
@@ -29,44 +55,43 @@ router.get('/', async function (req, res) {
     }
   
 });
-  
-/*
-* Route to create a new submission.
-*/
-router.post('/', async function (req, res, next) {
 
-    const submission = req.body
-    const db = getDb()
-    const collection = db.collection("submissions")
-    try {
-        const result = await collection.insertOne(submission)
-        console.log(submission)
-        res.status(201).json({
-        id: result.insertedId,
-        });
-    } catch (err) {
-        next(err)
-    }
-
-});
+router.patch('/:id', async function (req, res, next) {
+  if (validateAgainstSchema(req.body, SubmissionUpdateSchema)) {
+      try {
+          const submission = await getSubmissionById(req.params.id)
+          if (submission) {
+              await updateSubmissionById(req.params.id, req.body)
+              res.status(200).end()
+          }
+          else {
+              next()
+          }
+      } catch (err) {
+          next(err)
+      }
+  }
+  else {
+      res.status(400).json({
+          error: "Request body is not a valid submission object"
+      })
+  }
+})
 
 /*
 * Route to delete a submission.
 */
-router.delete('/:submissionid', async function (req, res, next) {  
-    async function deleteSubmissionById(id) {
-      const db = getDb();
-      const collection = db.collection("submissions");
-      const result = await collection.deleteOne({
-        _id: new ObjectId(id),
-      });
-      return result.deletedCount > 0;
-    }
-  
-    const successfulDelete = await deleteSubmissionById(req.params.submissionid);
-    if (successfulDelete) {
-      res.status(204).end();
-    } else {
-      next();
-    }
-  });
+router.delete('/:id', async function (req, res, next) {
+  try {
+      const submission = await getSubmissionById(req.params.id)
+      if (submission) {
+          await deleteSubmissionById(req.params.id)
+          res.status(204).end()
+      }
+      else {
+          next()
+      }
+  }catch (err) {
+      next(err)
+  }
+})

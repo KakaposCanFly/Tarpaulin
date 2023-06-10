@@ -10,6 +10,13 @@ const {
     updateAssignmentById,
     deleteAssignmentById
 } = require('../models/assignment');
+const { 
+    insertNewSubmission,
+    SubmissionSchema,
+    saveFile
+} = require('../models/submission');
+const multer = require("multer")
+const crypto = require("node:crypto")
 
 exports.router = router;
 
@@ -33,23 +40,23 @@ router.post('/', async function (req, res, next) {
     }
 })
 
-//router.get('/', async function (req, res, next) {
-//    try {
-//        const assignmentPage = await getAssignmentsPage(req.query.page || 1)
-//        assignmentPage.links = {}
-//        if (assignmentPage.page < assignmentPage.totalPages) {
-//            assignmentPage.links.nextPage = `/assignments?page=${assignmentPage.page + 1}`
-//            assignmentPage.links.lastPage = `/assignments?page=${assignmentPage.totalPages}`
-//        }
-//        if (assignmentPage.page > 1) {
-//            assignmentPage.links.prevPage = `/assignments?page=${assignmentPage.page - 1}`
-//            assignmentPage.links.firstPage = '/assignments?page=1'
-//        }
-//        res.status(200).json(assignmentPage)
-//    } catch (err) {
-//        next(err)
-//    }
-//})
+router.get('/', async function (req, res, next) {
+   try {
+       const assignmentPage = await getAssignmentsPage(req.query.page || 1)
+       assignmentPage.links = {}
+       if (assignmentPage.page < assignmentPage.totalPages) {
+           assignmentPage.links.nextPage = `/assignments?page=${assignmentPage.page + 1}`
+           assignmentPage.links.lastPage = `/assignments?page=${assignmentPage.totalPages}`
+       }
+       if (assignmentPage.page > 1) {
+           assignmentPage.links.prevPage = `/assignments?page=${assignmentPage.page - 1}`
+           assignmentPage.links.firstPage = '/assignments?page=1'
+       }
+       res.status(200).json(assignmentPage)
+   } catch (err) {
+       next(err)
+   }
+})
 
 router.get('/:id', async function (req, res, next) {
     try {
@@ -98,6 +105,81 @@ router.delete('/:id', async function (req, res, next) {
             next()
         }
     }catch (err) {
+        next(err)
+    }
+})
+
+
+/*
+**  Submissions  
+*/
+
+//Temporary file types for testing
+const fileTypes = {
+    "image/png": "png",
+    "image/jpeg": "jpeg",
+}
+
+const upload = multer({ 
+    storage: multer.diskStorage({
+        destination: `${__dirname}/../uploads`,
+        filename: (req, file, callback) => {    // called whenever a file is uploaded
+            const filename = crypto.pseudoRandomBytes(16).toString("hex")
+            const extension = fileTypes[file.mimetype]
+            callback(null, `${filename}.${extension}`)
+            //TODO: Handling a wider variety of file extensions without VScode exploding (or just ignore it lmao)
+        }
+    }),
+ })
+
+// Post submission to specified assignment
+router.post('/:id/submissions', upload.single("file"), async function (req, res, next) {
+    // console.log("body: ", req.body)
+    // console.log("id: ", req.params.id)
+    // console.log("schema: ", SubmissionSchema)
+    if (req.file && validateAgainstSchema(req.body, SubmissionSchema)) {
+        if (req.body.grade){
+            res.status(400).send({
+                msg: "Cannot add grade in initial submission post"
+            })
+        }
+        try {
+            const resultId = await insertNewSubmission(req.body)
+            const file = {
+                contentType: req.file.mimetype,
+                filename: req.file.filename,
+                path: req.file.path,
+                submissionId: req.body.submissionId
+            }
+            //Dev Note: May want to nest a try/catch block for this
+            const fileId = await saveFile(file)
+            res.status(201).json({
+                id: resultId,
+            });
+        } catch (err) {
+            next(err)
+        }
+    }
+    else {
+        res.status(400).json({
+            error: "Request body is not a valid submission"
+        })
+    }
+})
+
+// Get all submissions for specified assignment
+router.get('/:id/submissions', async function (req, res, next) {
+    const db = getDb()
+    const collection = db.collection("submissions")
+    try {
+        const submissions = await collection.find({ assignmentId: req.params.id }).toArray()        
+        if (submissions) {
+            res.status(200).json(submissions)
+        }
+        else {
+            next()
+        }
+    } catch (err) {
         next(err)
     }
 })
