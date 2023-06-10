@@ -1,4 +1,4 @@
-const { connectToDb, getDb } = require("./lib/mongo.js")
+const { connectToDb, getDb, closeDbConnection } = require('./lib/mongo')
 const { bulkInsertNewCourses } = require("./models/course.js")
 const {bulkInsertNewAssignments } = require("./models/assignment.js")
 const coursesData = require('./data/courses')
@@ -40,7 +40,8 @@ connectToDb(async function () {
     //const studentIds = await bulkInsertNewStudents(studentsData)
     //console.log("inserted students: ", studentIds)
 
-    closeDbConnection(function () {
-        console.log("Done!")
-    })
+    console.log("Information inserted into database, please close")
+    //closeDbConnection(function () {
+    //    console.log("== DB connection closed")
+    //})
 })
