@@ -38,7 +38,7 @@ exports.router = router;
 // })
 
 /*
- * Route to return a list of all submissions. --> instructor id matching assignment course id instructor id auth
+ * Route to return a list of all submissions.
  */
 router.get('/', async function (req, res) {
     const timestamp = new Date().toISOString()
@@ -56,7 +56,7 @@ router.get('/', async function (req, res) {
   
 });
 
-// --> instructor id matching assignment course id instructor id auth
+// --> admin or instructor authentication (adding grades)
 router.patch('/:id', async function (req, res, next) {
   if (validateAgainstSchema(req.body, SubmissionUpdateSchema)) {
       try {

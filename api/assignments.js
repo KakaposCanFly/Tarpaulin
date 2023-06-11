@@ -15,30 +15,36 @@ const {
     SubmissionSchema,
     saveFile
 } = require('../models/submission');
+
+const { requireAuthentication } = require("../lib/auth")
 const multer = require("multer")
-const crypto = require("node:crypto")
+const crypto = require("node:crypto");
+const { getCoursesByStudentId } = require('../models/course');
 
 exports.router = router;
 
-// auth
+// auth --> admin or instructor id needs to match course id
 router.post('/', async function (req, res, next) {
-    // console.log("body: ", req.body)
-    // console.log("schema: ", AssignmentSchema)
-    if (validateAgainstSchema(req.body, AssignmentSchema)) {
-        try {
-            const resultId = await insertNewAssignment(req.body)
-            res.status(201).json({
-                id: resultId,
-            });
-        } catch (err) {
-            next(err)
+    if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString() && req.body.courseId.toString() === course.instructorId.toString())) {
+        if (validateAgainstSchema(req.body, AssignmentSchema)) {
+            try {
+                const resultId = await insertNewAssignment(req.body)
+                res.status(201).json({
+                    id: resultId,
+                });
+            } catch (err) {
+                next(err)
+            }
         }
+        else {
+            res.status(400).json({
+                error: "Request body is not a valid assignment"
+            })
+        }
+    } else {
+        res.status(403).status.json({ error: "Only instructor teaching the course or admin can post an assignment"})
     }
-    else {
-        res.status(400).json({
-            error: "Request body is not a valid assignment"
-        })
-    }
+    
 })
 
 router.get('/', async function (req, res, next) {
@@ -75,41 +81,50 @@ router.get('/:id', async function (req, res, next) {
 
 // auth
 router.patch('/:id', async function (req, res, next) {
-    if (validateAgainstSchema(req.body, AssignmentSchema)) {
-        try {
-            const assignment = await getAssignmentById(req.params.id)
-            if (assignment) {
-                await updateAssignmentById(req.params.id, req.body)
-                res.status(200).end()
+    if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString() && req.body.courseId.toString() === course.instructorId.toString())) {
+        if (validateAgainstSchema(req.body, AssignmentSchema)) {
+            try {
+                const assignment = await getAssignmentById(req.params.id)
+                if (assignment) {
+                    await updateAssignmentById(req.params.id, req.body)
+                    res.status(200).end()
+                }
+                else {
+                    next()
+                }
+            } catch (err) {
+                next(err)
             }
-            else {
-                next()
-            }
-        } catch (err) {
-            next(err)
         }
-    }
-    else {
-        res.status(400).json({
-            error: "Request body is not a valid assignment object"
-        })
+        else {
+            res.status(400).json({
+                error: "Request body is not a valid assignment object"
+            })
+        }
+    } else {
+        res.status(403).status.json({ error: "Only instructor teaching the course or admin can update the assignment"})
     }
 })
 
 // auth
 router.delete('/:id', async function (req, res, next) {
-    try {
-        const assignment = await getAssignmentById(req.params.id)
-        if (assignment) {
-            await deleteAssignmentById(req.params.id)
-            res.status(204).end()
+    if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString() && req.body.courseId.toString() === course.instructorId.toString())) {
+        try {
+            const assignment = await getAssignmentById(req.params.id)
+            if (assignment) {
+                await deleteAssignmentById(req.params.id)
+                res.status(204).end()
+            }
+            else {
+                next()
+            }
+        }catch (err) {
+            next(err)
         }
-        else {
-            next()
-        }
-    }catch (err) {
-        next(err)
+    } else {
+        res.status(403).status.json({ error: "Only instructor teaching the course or admin can delete the assignment"})
     }
+    
 })
 
 
@@ -136,48 +151,64 @@ const upload = multer({
  })
 
 // Post submission to specified assignment --> student auth enrolled in the course
-router.post('/:id/submissions', upload.single("file"), async function (req, res, next) {
+router.post('/:id/submissions', requireAuthentication, upload.single("file"), async function (req, res, next) {
     // console.log("body: ", req.body)
     // console.log("id: ", req.params.id)
     // console.log("schema: ", SubmissionSchema)
-    if (req.file && validateAgainstSchema(req.body, SubmissionSchema)) {
-        if (req.body.grade){
-            res.status(400).send({
-                msg: "Cannot add grade in initial submission post"
-            })
-        }
-        const reqBody = {
-            assignmentId: new ObjectId(req.body.assignmentId),
-            studentId: new ObjectId(req.body.studentId)
-        }
-        try {
-            const submissionId = await insertNewSubmission(reqBody)
-            const file = {
-                contentType: req.file.mimetype,
-                filename: req.file.filename,
-                path: req.file.path,
-                submissionId: new ObjectId(req.body.submissionId)
-            }
-            //Dev Note: May want to nest a try/catch block for this
-            const fileId = await saveFile(file)
-
-            //Insert submissionId into submission list in assignment object
-            const db = getDb()
-            const collection = db.collection("assignments")
-
-            const updateStatus = await collection.updateOne({ _id: new ObjectId(req.params.id)}, {$push: {submissions: submissionId}})
-            
-            res.status(201).json({
-                id: submissionId,
-            });
-        } catch (err) {
-            next(err)
-        }
+    if (req.user.role !== "student") {
+        return res.status(403).json( error: "Only students can submit assignments.")
     }
-    else {
-        res.status(400).json({
-            error: "Request body is not a valid submission"
-        })
+    if (req.body && req.body.studentId && req.params.id) {
+        const courseId = req.body.courseId
+        const coursesEnrolled = await getCoursesByStudentId(req.body.studentId) 
+        // check user is in course
+        const check = coursesEnrolled.some(course => course._id === courseId)
+        // need to check if assignment is in the course?
+        if (check) {
+            if (req.file && validateAgainstSchema(req.body, SubmissionSchema)) {
+                if (req.body.grade){
+                    res.status(400).send({
+                        msg: "Cannot add grade in initial submission post"
+                    })
+                }
+                const reqBody = {
+                    assignmentId: new ObjectId(req.body.assignmentId),
+                    studentId: new ObjectId(req.body.studentId)
+                }
+                try {
+                    const submissionId = await insertNewSubmission(reqBody)
+                    const file = {
+                        contentType: req.file.mimetype,
+                        filename: req.file.filename,
+                        path: req.file.path,
+                        submissionId: new ObjectId(req.body.submissionId)
+                    }
+                    //Dev Note: May want to nest a try/catch block for this
+                    const fileId = await saveFile(file)
+        
+                    //Insert submissionId into submission list in assignment object
+                    const db = getDb()
+                    const collection = db.collection("assignments")
+        
+                    const updateStatus = await collection.updateOne({ _id: new ObjectId(req.params.id)}, {$push: {submissions: submissionId}})
+                    
+                    res.status(201).json({
+                        id: submissionId,
+                    });
+                } catch (err) {
+                    next(err)
+                }
+            }
+            else {
+                res.status(400).json({
+                    error: "Request body is not a valid submission"
+                })
+            }
+        } else {
+            return res.status(403).json({error: "Student is not enrolled in the course."})
+        }
+    } else {
+        res.status(400).json({error: "Request body is not a valid submission"})
     }
 })
 
