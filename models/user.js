@@ -28,7 +28,7 @@ exports.insertNewUser = async function (user) {
         const userInsert = extractValidFields(user, UserSchema)
         const hash = await bcrypt.hash(user.password, 8);
         console.log(hash)
-        user.password = hash;
+        userInsert.password = hash;
         console.log(" -- user to insert: ", userInsert)
 
         const db = getDb()
