@@ -6,6 +6,8 @@ const { validateAgainstSchema } = require('../lib/validation')
 const fs = require("fs")
 const fastcsv = require("fast-csv")
 
+const { requireAuthentication } = require("../lib/auth")
+
 exports.router = router;
 
 async function getCoursesPage(page, url, query){
@@ -180,6 +182,8 @@ router.put('/:courseid', requireAuthentication, async function (req, res, next){
         else{
             res.status(400).json({error: "Request body is not a valid course object!"})
         }
+    } else {
+        res.status(403).status.json({ error: "Unauthorized to access the specified resource"})
     }
 })
 
@@ -236,6 +240,8 @@ router.get("/:courseid/students", requireAuthentication, async function (req, re
                 next()
             }
         }
+    } else {
+        res.status(403).status.json({ error: "Unauthorized to access the specified resource"})
     }
 })
 
@@ -280,7 +286,7 @@ router.post("/:courseid/students", requireAuthentication, async function (req, r
             next()
         }
     } else {
-        res.status(400).json({ error: "Unauthorized to access the specified resource"})
+        res.status(403).status.json({ error: "Unauthorized to access the specified resource"})
     }
 })
 

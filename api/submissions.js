@@ -16,6 +16,11 @@ const {
   deleteSubmissionById,
   getDownloadStreamByFilename
 } = require('../models/submission');
+const {
+    getAssignmentById,
+} = require('../models/assignment');
+
+const { requireAuthentication } = require("../lib/auth")
 
 exports.router = router;
 
@@ -38,7 +43,7 @@ exports.router = router;
 // })
 
 /*
- * Route to return a list of all submissions. --> instructor id matching assignment course id instructor id auth
+ * Route to return a list of all submissions.
  */
 router.get('/', async function (req, res) {
     const timestamp = new Date().toISOString()
@@ -56,27 +61,35 @@ router.get('/', async function (req, res) {
   
 });
 
-// --> instructor id matching assignment course id instructor id auth
-router.patch('/:id', async function (req, res, next) {
-  if (validateAgainstSchema(req.body, SubmissionUpdateSchema)) {
-      try {
-          const submission = await getSubmissionById(req.params.id)
-          if (submission) {
-              await updateSubmissionById(req.params.id, req.body)
-              res.status(200).end()
-          }
-          else {
-              next()
-          }
-      } catch (err) {
-          next(err)
-      }
-  }
-  else {
-      res.status(400).json({
-          error: "Request body is not a valid submission object"
-      })
-  }
+// --> admin or instructor authentication (adding grades)
+router.patch('/:id', requireAuthentication, async function (req, res, next) {
+    const assignment = getAssignmentById(req.body.assignmentId)
+    const course = collection.find({ _id: new ObjectId(assignment.courseId) })
+    const instructorId = course.instructorId
+
+    if (req.user.role === "admin" || (req.user.role === "instructor" && instructorId === req.user.id)) {
+        if (validateAgainstSchema(req.body, SubmissionUpdateSchema)) {
+            try {
+                const submission = await getSubmissionById(req.params.id)
+                if (submission) {
+                    await updateSubmissionById(req.params.id, req.body)
+                    res.status(200).end()
+                }
+                else {
+                    next()
+                }
+            } catch (err) {
+                next(err)
+            }
+        }
+        else {
+            res.status(400).json({
+                error: "Request body is not a valid submission object"
+            })
+        }
+    } else {
+        res.status(403).status.json({ error: "Unauthorized to add grades."})
+    }
 })
 
 /*
