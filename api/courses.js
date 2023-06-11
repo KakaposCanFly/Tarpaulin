@@ -111,8 +111,12 @@ router.post('/', requireAuthentication, async function (req, res, next){
             const db = getDb()
             const collection = db.collection("courses")
     
-            const newCourse = await collection.insertOne(req.body)
-    
+            //Dev note: Clean this up
+            const courseBody = req.body
+            courseBody.instructorId = new ObjectId(req.body.instructorId)
+
+            const newCourse = await collection.insertOne(courseBody)
+
             res.status(201).json({
                 id: newCourse.insertedId,
                 links: {
@@ -153,7 +157,8 @@ router.get('/:courseid', async function (req, res, next){
  * Route to update data for specific course, needs authentication.
  */
 router.put('/:courseid', requireAuthentication, async function (req, res, next){
-    const courseId = req.params.id
+    const courseId = req.params.courseid
+    console.log("courseId: ", courseId)
     if (!ObjectId.isValid(courseId)) {
         return res.status(404).json({ error: "Course not found" });
     }
@@ -183,7 +188,7 @@ router.put('/:courseid', requireAuthentication, async function (req, res, next){
             res.status(400).json({error: "Request body is not a valid course object!"})
         }
     } else {
-        res.status(403).status.json({ error: "Unauthorized to access the specified resource"})
+        res.status(403).json({ error: "Unauthorized to access the specified resource"})
     }
 })
 
@@ -191,7 +196,7 @@ router.put('/:courseid', requireAuthentication, async function (req, res, next){
  * Route to delete course from database, needs authentication. 
  */
 router.delete("/:courseid", requireAuthentication, async function (req, res, next){
-    const courseId = req.params.id
+    const courseId = req.params.courseid
     if (!ObjectId.isValid(courseId)) {
         return res.status(404).json({ error: "Course not found" });
     }
@@ -209,7 +214,7 @@ router.delete("/:courseid", requireAuthentication, async function (req, res, nex
             })
         }
     } else {
-        res.status(403).status.json({ error: "Unauthorized to access the specified resource"})
+        res.status(403).json({ error: "Unauthorized to access the specified resource"})
     }
 })
 
@@ -218,7 +223,7 @@ router.delete("/:courseid", requireAuthentication, async function (req, res, nex
  */
 
 router.get("/:courseid/students", requireAuthentication, async function (req, res, next){
-    if (req.user == req.params.id) {
+    if (req.user == req.params.courseid) {
         if(ObjectId.isValid(req.params.courseid)) {
             var students = []
 
@@ -239,9 +244,11 @@ router.get("/:courseid/students", requireAuthentication, async function (req, re
             else{
                 next()
             }
+        } else {
+            next()
         }
     } else {
-        res.status(403).status.json({ error: "Unauthorized to access the specified resource"})
+        res.status(403).json({ error: "Unauthorized to access the specified resource"})
     }
 })
 
@@ -286,7 +293,7 @@ router.post("/:courseid/students", requireAuthentication, async function (req, r
             next()
         }
     } else {
-        res.status(403).status.json({ error: "Unauthorized to access the specified resource"})
+        res.status(403).json({ error: "Unauthorized to access the specified resource"})
     }
 })
 
@@ -295,7 +302,7 @@ router.post("/:courseid/students", requireAuthentication, async function (req, r
  */
 //idk what im doing here, how to send the csv line by line to user? 
 router.get("/:courseid/roster", requireAuthentication, async function (req, res, next){
-    const courseId = req.params.id
+    const courseId = req.params.courseid
     if (!ObjectId.isValid(req.params.courseid)) {
         return res.status(404).json({error: "Course not found"})
     }
@@ -322,7 +329,7 @@ router.get("/:courseid/roster", requireAuthentication, async function (req, res,
  * Route to fetch list of Assignments for the course.  
  */
 router.get("/:courseid/assignments", async function (req, res, next){
-    const courseId = req.params.id;
+    const courseId = req.params.courseid;
     if (!ObjectId.isValid(courseId)) {
         return res.status(404).json({ error: "Course not found" })
     }

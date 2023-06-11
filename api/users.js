@@ -41,7 +41,7 @@ router.get('/', async function (req, res) {
  */
 router.post('/', getEmail, async function (req, res) {
     if (req.body.role == 'instructor' || req.body.role == 'admin') {
-        console.log("Your role is: ", req.user.role)
+        // console.log("Your role is: ", req.user.role)
         if (req.user && req.user.role != 'admin' || req.user == null) {
             return res.status(403).send({
                 error: 'Unauthorized to create new user that is an instructor or admin'

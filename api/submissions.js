@@ -88,7 +88,7 @@ router.patch('/:id', requireAuthentication, async function (req, res, next) {
             })
         }
     } else {
-        res.status(403).status.json({ error: "Unauthorized to add grades."})
+        res.status(403).json({ error: "Unauthorized to add grades."})
     }
 })
 

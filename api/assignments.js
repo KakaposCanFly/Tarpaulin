@@ -42,7 +42,7 @@ router.post('/', async function (req, res, next) {
             })
         }
     } else {
-        res.status(403).status.json({ error: "Only instructor teaching the course or admin can post an assignment"})
+        res.status(403).json({ error: "Only instructor teaching the course or admin can post an assignment"})
     }
     
 })
@@ -102,7 +102,7 @@ router.patch('/:id', async function (req, res, next) {
             })
         }
     } else {
-        res.status(403).status.json({ error: "Only instructor teaching the course or admin can update the assignment"})
+        res.status(403).json({ error: "Only instructor teaching the course or admin can update the assignment"})
     }
 })
 
@@ -122,7 +122,7 @@ router.delete('/:id', async function (req, res, next) {
             next(err)
         }
     } else {
-        res.status(403).status.json({ error: "Only instructor teaching the course or admin can delete the assignment"})
+        res.status(403).json({ error: "Only instructor teaching the course or admin can delete the assignment"})
     }
     
 })
@@ -156,7 +156,7 @@ router.post('/:id/submissions', requireAuthentication, upload.single("file"), as
     // console.log("id: ", req.params.id)
     // console.log("schema: ", SubmissionSchema)
     if (req.user.role !== "student") {
-        return res.status(403).json( error: "Only students can submit assignments.")
+        return res.status(403).json({ error: "Only students can submit assignments."})
     }
     if (req.body && req.body.studentId && req.params.id) {
         const courseId = req.body.courseId
