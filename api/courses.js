@@ -103,23 +103,26 @@ router.get('/', async function (req, res) {
 /*
  * Route to create a new course, needs authentication. 
  */
-router.post('/', async function (req, res, next){
+router.post('/', requireAuthentication, async function (req, res, next){
+    if (req.user.role === "admin") {
+        if(validateAgainstSchema(req.body, courseSchema)){
+            const db = getDb()
+            const collection = db.collection("courses")
     
-    if(validateAgainstSchema(req.body, courseSchema)){
-        const db = getDb()
-        const collection = db.collection("courses")
-
-        const newCourse = await collection.insertOne(req.body)
-
-        res.status(201).json({
-            id: newCourse.insertedId,
-            links: {
-                course: `/courses/${newCourse.insertedId}`
-            }
-        })
-    }
-    else{
-        res.status(400).json({error: "Request body is not a valid course object!"})
+            const newCourse = await collection.insertOne(req.body)
+    
+            res.status(201).json({
+                id: newCourse.insertedId,
+                links: {
+                    course: `/courses/${newCourse.insertedId}`
+                }
+            })
+        }
+        else{
+            res.status(400).json({error: "Request body is not a valid course object!"})
+        }
+    } else {
+        res.status(403).json({ error: "Unauthorized to access specified resource"})
     }
 })
 
@@ -147,9 +150,13 @@ router.get('/:courseid', async function (req, res, next){
 /*
  * Route to update data for specific course, needs authentication.
  */
-router.put('/:courseid', async function (req, res, next){
-
-    if(ObjectId.isValid(req.params.courseid)){
+router.put('/:courseid', requireAuthentication, async function (req, res, next){
+    const courseId = req.params.id
+    if (!ObjectId.isValid(courseId)) {
+        return res.status(404).json({ error: "Course not found" });
+    }
+    const course = await getCourseById(courseId)
+    if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString())) {
         if(validateAgainstSchema(req.body, courseSchema)){
             const db = getDb()
             const collection = db.collection("courses")
@@ -174,17 +181,17 @@ router.put('/:courseid', async function (req, res, next){
             res.status(400).json({error: "Request body is not a valid course object!"})
         }
     }
-    else{
-        next()
-    }
 })
 
 /*
  * Route to delete course from database, needs authentication. 
  */
-router.delete("/:courseid", async function (req, res, next){
-
-    if(ObjectId.isValid(req.params.courseid)){
+router.delete("/:courseid", requireAuthentication, async function (req, res, next){
+    const courseId = req.params.id
+    if (!ObjectId.isValid(courseId)) {
+        return res.status(404).json({ error: "Course not found" });
+    }
+    if (req.user.role === "admin") {
         const db = getDb()
         const collection = db.collection("courses")
 
@@ -193,11 +200,12 @@ router.delete("/:courseid", async function (req, res, next){
             res.status(204).end()
         }
         else{
-            next()
+            res.status(404).send({
+                error: "Request course not found."
+            })
         }
-    }
-    else{
-        next()
+    } else {
+        res.status(403).status.json({ error: "Unauthorized to access the specified resource"})
     }
 })
 
@@ -205,74 +213,74 @@ router.delete("/:courseid", async function (req, res, next){
  * Route to get a list of students enrolled in a course, needs authentication. 
  */
 
-router.get("/:courseid/students", async function (req, res, next){
+router.get("/:courseid/students", requireAuthentication, async function (req, res, next){
+    if (req.user == req.params.id) {
+        if(ObjectId.isValid(req.params.courseid)) {
+            var students = []
 
-    if(ObjectId.isValid(req.params.courseid)){
-        var students = []
+            const db = getDb()
+            const collection = db.collection("students")
 
-        const db = getDb()
-        const collection = db.collection("students")
+            const course = await getCourseById(req.params.courseid)
+            const studentsIds = course.course.students
 
-        const course = await getCourseById(req.params.courseid)
-        const studentsIds = course.course.students
-
-        if(studentsIds.length > 0){
-            for(var i = 0; i < studentsIds.length; i++){
-                var student = await collection.find({_id: new ObjectId(studentsIds[i])}).toArray()
-                students.push(student[0])
-            }
-    
-            res.status(200).json({students: students})
-        }
-        else{
-            next()
-        }
+            if(studentsIds.length > 0){
+                for(var i = 0; i < studentsIds.length; i++){
+                    var student = await collection.find({_id: new ObjectId(studentsIds[i])}).toArray()
+                    students.push(student[0])
+                }
         
-    }
-    else{
-        next()
+                res.status(200).json({students: students})
+            }
+            else{
+                next()
+            }
+        }
     }
 })
 
 /*
  * Route to update enrollment for a course, needs authentication.
  */
-router.post("/:courseid/students", async function (req, res, next){
-
-    if(ObjectId.isValid(req.params.courseid)){
-        const db = getDb()
-        const collection = db.collection("courses")
-        const studentsCollection = db.collection("students")
-        var updateAddStatus = 0
-        var updateRemoveStatus = 0
-
-        if((req.body.add && req.body.add.length > 0) || (req.body.remove && req.body.remove.length > 0)){
-
-            //if student needs to be added
-            if(req.body.add){
-                updateAddStatus = await collection.updateOne({_id: new ObjectId(req.params.courseid)}, {$push: {students: {$each: req.body.add}}})
-                for (var i = 0; i < req.body.add.length; i++){
-                    await studentsCollection.updateOne({_id: new ObjectId(req.body.add[i])}, {$push: {courses: new ObjectId(req.params.courseid)}})
+router.post("/:courseid/students", requireAuthentication, async function (req, res, next){
+    if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString()) {
+        if(ObjectId.isValid(req.params.courseid)){
+            const db = getDb()
+            const collection = db.collection("courses")
+            const studentsCollection = db.collection("students")
+            var updateAddStatus = 0
+            var updateRemoveStatus = 0
+    
+            if((req.body.add && req.body.add.length > 0) || (req.body.remove && req.body.remove.length > 0)){
+    
+                //if student needs to be added
+                if(req.body.add){
+                    updateAddStatus = await collection.updateOne({_id: new ObjectId(req.params.courseid)}, {$push: {students: {$each: req.body.add}}})
+                    for (var i = 0; i < req.body.add.length; i++){
+                        await studentsCollection.updateOne({_id: new ObjectId(req.body.add[i])}, {$push: {courses: new ObjectId(req.params.courseid)}})
+                    }
                 }
+    
+                //if student needs to removed
+                if(req.body.remove){
+                    updateRemoveStatus = await collection.updateOne({_id: new ObjectId(req.params.courseid)}, {$pull: {students: {$in: req.body.remove}}})
+                    for (var i = 0; i < req.body.remove.length; i++){
+                        await studentsCollection.updateOne({_id: new ObjectId(req.body.remove[i])}, {$pull: {courses: new ObjectId(req.params.courseid)}})
+                    }
+                }
+                
+                res.status(200).end()
             }
-
-            //if student needs to removed
-            if(req.body.remove){
-                updateRemoveStatus = await collection.updateOne({_id: new ObjectId(req.params.courseid)}, {$pull: {students: {$in: req.body.remove}}})
-                for (var i = 0; i < req.body.remove.length; i++){
-                    await studentsCollection.updateOne({_id: new ObjectId(req.body.remove[i])}, {$pull: {courses: new ObjectId(req.params.courseid)}})
-                }
+            else{
+                res.status(400).json({error: "Request body is not valid!"})
             }
             
-            res.status(200).end()
         }
         else{
-            res.status(400).json({error: "Request body is not valid!"})
+            next()
         }
-        
-    }
-    else{
-        next()
+    } else {
+        res.status(400).json({ error: "Unauthorized to access the specified resource"})
     }
 })
 
@@ -280,17 +288,27 @@ router.post("/:courseid/students", async function (req, res, next){
  * Route to fetch a CSV file containing list of students enrolled in the course, needs authentication. 
  */
 //idk what im doing here, how to send the csv line by line to user? 
-router.get("/:courseid/roster", async function (req, res, next){
-
-    if(ObjectId.isValid(req.params.courseid)){
-        //turn roster into a csv 
-        var roster = await getCourseRoster(req.params.courseid)
-
-        // roster = roster.split(" ")
-        res.status(200).type("csv").send(roster)
+router.get("/:courseid/roster", requireAuthentication, async function (req, res, next){
+    const courseId = req.params.id
+    if (!ObjectId.isValid(req.params.courseid)) {
+        return res.status(404).json({error: "Course not found"})
     }
-    else{
-        next()
+    const course = await getCourseById(courseId)
+    if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() == course.instructorId.toString()) {
+        try {
+            var roster = await getCourseRoster(req.params.courseid)
+            if (roster) {
+                res.status(200).type("csv").send(roster)
+            } else {
+                res.status(404).send({
+                    error: "Request course not found"
+                })
+            }
+        } catch (err) {
+            next(err)
+        }
+    } else {
+        res.status(403).json({error: "Unauthorized to access the specified resource"})
     }
 })
 
@@ -298,8 +316,11 @@ router.get("/:courseid/roster", async function (req, res, next){
  * Route to fetch list of Assignments for the course.  
  */
 router.get("/:courseid/assignments", async function (req, res, next){
-
-    if(ObjectId.isValid(req.params.courseid)){
+    const courseId = req.params.id;
+    if (!ObjectId.isValid(courseId)) {
+        return res.status(404).json({ error: "Course not found" })
+    }
+    try {
         const db = getDb()
         const collection = db.collection("assignments")
 
@@ -310,11 +331,12 @@ router.get("/:courseid/assignments", async function (req, res, next){
             })
         }
         else{
-            next()
+            res.status(400).send({
+                error: "Request course not found."
+            })
         }
-    }
-    else{
-        next()
+    } catch (err) {
+        next(err)
     }
 })
 

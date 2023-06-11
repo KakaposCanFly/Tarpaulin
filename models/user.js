@@ -10,7 +10,6 @@ const { extractValidFields } = require('../lib/validation.js')
  * Schema for a User
  */
 const UserSchema = {
-    // id: { required: false },
     name: { required: true },
     email: { required: true },
     password: { required: true },
