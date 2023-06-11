@@ -143,8 +143,12 @@ router.post('/:id/submissions', upload.single("file"), async function (req, res,
                 msg: "Cannot add grade in initial submission post"
             })
         }
+        const reqBody = {
+            assignmentId: new ObjectId(req.body.assignmentId),
+            studentId: new ObjectId(req.body.studentId)
+        }
         try {
-            const submissionId = await insertNewSubmission(req.body)
+            const submissionId = await insertNewSubmission(reqBody)
             const file = {
                 contentType: req.file.mimetype,
                 filename: req.file.filename,
@@ -157,8 +161,9 @@ router.post('/:id/submissions', upload.single("file"), async function (req, res,
             //Insert submissionId into submission list in assignment object
             const db = getDb()
             const collection = db.collection("assignments")
-            const updateStats = await collection.updateOne({ _id: new ObjectId(req.params.id)}, {$push: {submissions: submissionId}})
 
+            const updateStatus = await collection.updateOne({ _id: new ObjectId(req.params.id)}, {$push: {submissions: submissionId}})
+            
             res.status(201).json({
                 id: submissionId,
             });

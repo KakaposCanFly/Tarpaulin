@@ -29,7 +29,7 @@ async function checkAdmin(id) {
 /**
  * Get all users
  */
-router.get('/', async function (req.res) {
+router.get('/', async function (req, res) {
     const db = getDb()
     const collection = db.collection("users")
     const usersPage = await collection.find({}).toArray()
@@ -50,7 +50,7 @@ router.post('/', getEmail, async function (req, res) {
     }
     try {
         const id = await insertNewUser(req.body);
-        console.log(id);
+        console.log("id:", id);
         if (id) {
             res.status(201).send({_id: id})
         } else {
@@ -101,23 +101,11 @@ router.get('/:id', requireAuthentication, async function (req, res, next) {
         const user = await getUserById(req.params.id)
         let courses
         if (user.email === req.user.email) {
-            if (req.user.role == 'instructor!') {
-                console.log("Welcome instructor!")
-                console.log("== req.params.id", req.params.id)
-                courses = await getCoursesByInstructorId(req.params.id)
-            }
-            if (req.user.role == 'student') {
-                console.log("Welcome student!")
-                console.log("== req.params.id", req.params.id)
-                courses = await getCoursesByStudentId(req.params.id)
-            }
 
             console.log("user: ", user)
-            console.log("courses: ", courses)
-            res.status(200).json({
-                user: user,
-                courses: courses
-            })
+            res.status(200).json(
+                user
+            )
         } else {
             res.status(403).send({
                 err: "Unauthorized to access the specified resource."
@@ -147,6 +135,8 @@ router.get('/:id/courses', requireAuthentication, async function(req, res, next)
             } else {
                 next()
             }
+        } catch (e) {
+            next(e)
         }
     }
 })

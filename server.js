@@ -9,6 +9,7 @@ const port = process.env.PORT || 8080;
 
 const redisHost = process.env.REDIS_HOST || 'localhost'
 const redisPort = process.env.REDIS_PORT || 6379
+const { getEmail } = require("./lib/auth")
 const redisClient = redis.createClient({
     url: `redis://${redisHost}:${redisPort}`
 })
@@ -24,14 +25,14 @@ async function rateLimit(req, res, next) {
     let maxLimit = req.user && req.user.email ? AuthenticatedLimitMaxRequests : rateLimitMaxRequests // 10 or 30 requests per minute
     let refreshRate = req.user && req.user.email ? AuthenticatedLimitRefreshRate : rateLimitRefreshRate // switches refresh rate between normal and 30
 
-    console.log(" -- loginType:", loginType)
-    console.log(" -- maxLimit:", maxLimit)
-    console.log(" -- refreshRate:", refreshRate)
+    // console.log(" -- loginType:", loginType)
+    // console.log(" -- maxLimit:", maxLimit)
+    // console.log(" -- refreshRate:", refreshRate)
 
     let tokenBucket
     try {
         tokenBucket = await redisClient.hGetAll(loginType)
-        console.log(" -- tokentBucket:" tokenBucket)
+        // console.log(" -- tokentBucket:", tokenBucket)
     } catch (err) {
         next()
         return
@@ -64,7 +65,7 @@ async function rateLimit(req, res, next) {
     }
 
 }
-app.use(loginType)
+app.use(getEmail)
 app.use(rateLimit)
 
 app.use(express.json());
