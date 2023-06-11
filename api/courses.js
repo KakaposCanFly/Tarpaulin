@@ -4,8 +4,6 @@ const { ObjectId } = require("mongodb")
 const { courseSchema } = require("../models/course")
 const { validateAgainstSchema } = require('../lib/validation')
 const fs = require("fs")
-const fastcsv = require("fast-csv")
-
 const { requireAuthentication } = require("../lib/auth")
 
 exports.router = router;
@@ -158,38 +156,40 @@ router.get('/:courseid', async function (req, res, next){
  */
 router.put('/:courseid', requireAuthentication, async function (req, res, next){
     const courseId = req.params.courseid
-    console.log("courseId: ", courseId)
-    if (!ObjectId.isValid(courseId)) {
-        return res.status(404).json({ error: "Course not found" });
-    }
-    const course = await getCourseById(courseId)
-    if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString())) {
-        if(validateAgainstSchema(req.body, courseSchema)){
-            const db = getDb()
-            const collection = db.collection("courses")
+    if (ObjectId.isValid(courseId)) {
+        const course = await getCourseById(courseId)
+        if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString())) {
+            if(validateAgainstSchema(req.body, courseSchema)){
+                const db = getDb()
+                const collection = db.collection("courses")
 
-            const updateStatus = collection.replaceOne(
-                { _id: new ObjectId(req.params.courseid) },
-                req.body
-            )
+                const updateStatus = collection.replaceOne(
+                    { _id: new ObjectId(req.params.courseid) },
+                    req.body
+                )
 
-            if(updateStatus){
-                res.status(200).json({
-                    links: {
-                        course: `/courses/${req.params.courseid}`
-                    }
-                })
+                if(updateStatus){
+                    res.status(200).json({
+                        links: {
+                            course: `/courses/${req.params.courseid}`
+                        }
+                    })
+                }
+                else{
+                    next()
+                }
             }
             else{
-                next()
+                res.status(400).json({error: "Request body is not a valid course object!"})
             }
+        } else {
+            res.status(403).json({ error: "Unauthorized to access the specified resource"})
         }
-        else{
-            res.status(400).json({error: "Request body is not a valid course object!"})
-        }
-    } else {
-        res.status(403).json({ error: "Unauthorized to access the specified resource"})
     }
+    else{
+        next()
+    }
+    
 })
 
 /*
@@ -197,25 +197,28 @@ router.put('/:courseid', requireAuthentication, async function (req, res, next){
  */
 router.delete("/:courseid", requireAuthentication, async function (req, res, next){
     const courseId = req.params.courseid
-    if (!ObjectId.isValid(courseId)) {
-        return res.status(404).json({ error: "Course not found" });
-    }
-    if (req.user.role === "admin") {
-        const db = getDb()
-        const collection = db.collection("courses")
-
-        const deleteStatus = await collection.deleteOne({_id: new ObjectId(req.params.courseid)})
-        if(deleteStatus){
-            res.status(204).end()
+    if (ObjectId.isValid(courseId)) {
+        if (req.user.role === "admin") {
+            const db = getDb()
+            const collection = db.collection("courses")
+    
+            const deleteStatus = await collection.deleteOne({_id: new ObjectId(req.params.courseid)})
+            if(deleteStatus){
+                res.status(204).end()
+            }
+            else{
+                res.status(404).send({
+                    error: "Request course not found."
+                })
+            }
+        } else {
+            res.status(403).json({ error: "Unauthorized to access the specified resource"})
         }
-        else{
-            res.status(404).send({
-                error: "Request course not found."
-            })
-        }
-    } else {
-        res.status(403).json({ error: "Unauthorized to access the specified resource"})
     }
+    else{
+        next()
+    }
+    
 })
 
 /*
@@ -303,26 +306,29 @@ router.post("/:courseid/students", requireAuthentication, async function (req, r
 //idk what im doing here, how to send the csv line by line to user? 
 router.get("/:courseid/roster", requireAuthentication, async function (req, res, next){
     const courseId = req.params.courseid
-    if (!ObjectId.isValid(req.params.courseid)) {
-        return res.status(404).json({error: "Course not found"})
-    }
-    const course = await getCourseById(courseId)
-    if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() == course.instructorId.toString()) {
-        try {
-            var roster = await getCourseRoster(req.params.courseid)
-            if (roster) {
-                res.status(200).type("csv").send(roster)
-            } else {
-                res.status(404).send({
-                    error: "Request course not found"
-                })
+    if (ObjectId.isValid(req.params.courseid)) {
+        const course = await getCourseById(courseId)
+        if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() == course.instructorId.toString()) {
+            try {
+                var roster = await getCourseRoster(req.params.courseid)
+                if (roster) {
+                    res.status(200).type("csv").send(roster)
+                } else {
+                    res.status(404).send({
+                        error: "Request course not found"
+                    })
+                }
+            } catch (err) {
+                next(err)
             }
-        } catch (err) {
-            next(err)
+        } else {
+            res.status(403).json({error: "Unauthorized to access the specified resource"})
         }
-    } else {
-        res.status(403).json({error: "Unauthorized to access the specified resource"})
     }
+    else{
+        next()
+    }
+   
 })
 
 /*
@@ -330,27 +336,31 @@ router.get("/:courseid/roster", requireAuthentication, async function (req, res,
  */
 router.get("/:courseid/assignments", async function (req, res, next){
     const courseId = req.params.courseid;
-    if (!ObjectId.isValid(courseId)) {
-        return res.status(404).json({ error: "Course not found" })
-    }
-    try {
-        const db = getDb()
-        const collection = db.collection("assignments")
-
-        const assignments = await collection.find({courseId: new ObjectId(req.params.courseid)}).toArray()
-        if(assignments.length > 0){
-            res.status(200).json({
-                assignments: assignments
-            })
+    if (ObjectId.isValid(courseId)) {
+        try {
+            const db = getDb()
+            const collection = db.collection("assignments")
+    
+            const assignments = await collection.find({courseId: new ObjectId(req.params.courseid)}).toArray()
+            if(assignments.length > 0){
+                res.status(200).json({
+                    assignments: assignments
+                })
+            }
+            else{
+                res.status(400).send({
+                    error: "Request course not found."
+                })
+            }
+        } catch (err) {
+            next(err)
         }
-        else{
-            res.status(400).send({
-                error: "Request course not found."
-            })
-        }
-    } catch (err) {
-        next(err)
     }
+    else{
+        next()
+    }
+    
+    
 })
 
 
