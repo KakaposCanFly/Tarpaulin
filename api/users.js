@@ -73,7 +73,7 @@ router.post('/login', async function (req, res, next) {
             )
             if (authenticated) {
                 const user = await getUserByEmail(req.body.email, true)
-                const token = generateAuthToken(req.body.email, user.role)
+                const token = generateAuthToken(user._id, req.body.email, user.role)
                 res.status(200).send({
                     token: token
                 })

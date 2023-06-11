@@ -20,6 +20,7 @@ const crypto = require("node:crypto")
 
 exports.router = router;
 
+// auth
 router.post('/', async function (req, res, next) {
     console.log("body: ", req.body)
     console.log("schema: ", AssignmentSchema)
@@ -72,6 +73,7 @@ router.get('/:id', async function (req, res, next) {
     }
 })
 
+// auth
 router.patch('/:id', async function (req, res, next) {
     if (validateAgainstSchema(req.body, AssignmentSchema)) {
         try {
@@ -94,6 +96,7 @@ router.patch('/:id', async function (req, res, next) {
     }
 })
 
+// auth
 router.delete('/:id', async function (req, res, next) {
     try {
         const assignment = await getAssignmentById(req.params.id)
@@ -132,7 +135,7 @@ const upload = multer({
     }),
  })
 
-// Post submission to specified assignment
+// Post submission to specified assignment --> student auth enrolled in the course
 router.post('/:id/submissions', upload.single("file"), async function (req, res, next) {
     // console.log("body: ", req.body)
     // console.log("id: ", req.params.id)
@@ -167,7 +170,7 @@ router.post('/:id/submissions', upload.single("file"), async function (req, res,
     }
 })
 
-// Get all submissions for specified assignment
+// Get all submissions for specified assignment auth 
 router.get('/:id/submissions', async function (req, res, next) {
     const db = getDb()
     const collection = db.collection("submissions")

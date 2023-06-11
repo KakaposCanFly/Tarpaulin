@@ -7,6 +7,8 @@ const { connectToDb } = require("./lib/mongo")
 const app = express();
 const port = process.env.PORT || 8080;
 
+const { getLogin } = require("./lib/auth")
+
 const redisHost = process.env.REDIS_HOST || 'localhost'
 const redisPort = process.env.REDIS_PORT || 6379
 const redisClient = redis.createClient({
@@ -64,7 +66,7 @@ async function rateLimit(req, res, next) {
     }
 
 }
-app.use(loginType)
+app.use(getLogin)
 app.use(rateLimit)
 
 app.use(express.json());
