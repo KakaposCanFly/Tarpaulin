@@ -9,9 +9,9 @@ const {
     getUserById,
     validateUser
 } = require('../models/user')
-const { generateAuthToken, requireAuthentication } = require("../lib/auth")
+const { generateAuthToken, requireAuthentication, getEmail } = require("../lib/auth")
 
-// const {  } = require('../models/course')
+const { getCoursesByInstructorId, getCoursesByStudentId } = require('../models/course')
 
 exports.router = router;
 
@@ -39,7 +39,15 @@ router.get('/', async function (req.res) {
 /**
  * Create a new user
  */
-router.post('/', async function (req, res) {
+router.post('/', getEmail, async function (req, res) {
+    if (req.body.role == 'instructor' || req.body.role == 'admin') {
+        console.log("Your role is: ", req.user.role)
+        if (req.user && req.user.role != 'admin' || req.user == null) {
+            return res.status(403).send({
+                error: 'Unauthorized to create new user that is an instructor or admin'
+            })
+        }
+    }
     try {
         const id = await insertNewUser(req.body);
         console.log(id);
@@ -47,11 +55,12 @@ router.post('/', async function (req, res) {
             res.status(201).send({_id: id})
         } else {
             res.status(400).send({
-                error: "No."
+                error: "Not a valid user."
             })
         }
     } catch (err) {
-        console.log("Post Error: ", err)
+        console.log("Cannot POST: ", err)
+        res.status(500).send({error: 'Internal Server Error.'})
     }
 })
 
