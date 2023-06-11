@@ -91,3 +91,13 @@ exports.validateUser = async function (email, password) {
     //bcrypt will hash the password and compare it with the stored password 
     return user && await bcrypt.compare(password, user.password)  
 }
+
+exports.bulkInsertNewUsers = async function (users) {
+    const usersToInsert = users.map(function (user) {
+        return extractValidFields(user, UserSchema)
+    })
+    const db = getDb()
+    const collection = db.collection('users')
+    const result = await collection.insertMany(usersToInsert)
+    return result.insertedIds
+}
