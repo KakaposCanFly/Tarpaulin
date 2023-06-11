@@ -9,10 +9,21 @@ const courseSchema = {
     title: {required: true},
     term: {required: true},
     instructorId: {required: true},
-    students: {required: true}
+    students: {required: true},
+    assignments: {required: true}
 }
 
 exports.courseSchema = courseSchema
+
+async function getAssignmentsByCourseId(id) {
+    const course = await Course.findById(id);
+    if (!course) {
+        return null
+    }
+    const result = await UserSchema.find({ _id: {$in: course.assignments}})
+    return result
+}
+exports.getAssignmentsByCourseId = getAssignmentsByCourseId
 
 
 async function bulkInsertNewCourses(courses) {
