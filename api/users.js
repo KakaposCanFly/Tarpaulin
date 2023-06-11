@@ -129,5 +129,61 @@ router.get('/:id', requireAuthentication, async function (req, res, next) {
 })
 
 router.get('/:id/courses', requireAuthentication, async function(req, res, next) {
+    const userid = req.params.userid
+    const db = getDb()
+    const collection = db.collection("courses")
+    const userCollection = db.collection("users")
+    const admin = await checkAdmin(req.user)
 
+    if (req.user === req.params.userid || admin === true) {
+        try {
+            const user = await userCollection.find({ _id: new ObjectId(userid)}).toArray()
+            const userCourses = await collection.find({ownerId: user[0].id}).toArray()
+
+            if (userCourses.length !== 0) {
+                res.status(200).json({
+                    courses: userCourses
+                })
+            } else {
+                next()
+            }
+        }
+    }
+})
+
+router.get('/:id/assignments', requireAuthentication, async function(req, res, next) {
+    const admin = await checkAdmin(req.user.userid)
+    
+    if (req.user === req.params.userid || admin) {
+        const userid = req.params.userid
+        const db = getDb()
+        const collection = db.collection("photos")
+        const userCollection = db.collection("users")
+
+        const user = await userCollection.find({_id: new ObjectId(userid)}).toArray()
+        const userPhotos = await collection.find({userId: user[0].id}).toArray()
+
+        if(userPhotos.length !== 0){
+            res.status(200).json({
+                photos: userPhotos
+            })
+        } else {
+           next()
+        }
+    } else {
+        res.status(403).send({ error: "Cannot access specified resource."})
+    }
+})
+
+router.delete('/:id', async function (req, res, next) {
+    const db = getDb()
+    const collection = db.collection("users")
+    const userid = req.params.userid
+
+    const deleteStatus = await collection.deleteOne({_id: new ObjectId(userid)})
+    if (deleteStatus) {
+        res.status(204).end()
+    } else {
+        next()
+    }
 })
