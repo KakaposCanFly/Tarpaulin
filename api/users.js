@@ -9,9 +9,9 @@ const {
     getUserById,
     validateUser
 } = require('../models/user')
-const { generateAuthToken, requireAuthentication } = require("../lib/auth")
+const { generateAuthToken, requireAuthentication, getEmail } = require("../lib/auth")
 
-// const {  } = require('../models/course')
+const { getCoursesByInstructorId, getCoursesByStudentId } = require('../models/course')
 
 exports.router = router;
 
@@ -39,7 +39,15 @@ router.get('/', async function (req.res) {
 /**
  * Create a new user
  */
-router.post('/', async function (req, res) {
+router.post('/', getEmail, async function (req, res) {
+    if (req.body.role == 'instructor' || req.body.role == 'admin') {
+        console.log("Your role is: ", req.user.role)
+        if (req.user && req.user.role != 'admin' || req.user == null) {
+            return res.status(403).send({
+                error: 'Unauthorized to create new user that is an instructor or admin'
+            })
+        }
+    }
     try {
         const id = await insertNewUser(req.body);
         console.log(id);
@@ -47,11 +55,12 @@ router.post('/', async function (req, res) {
             res.status(201).send({_id: id})
         } else {
             res.status(400).send({
-                error: "No."
+                error: "Not a valid user."
             })
         }
     } catch (err) {
-        console.log("Post Error: ", err)
+        console.log("Cannot POST: ", err)
+        res.status(500).send({error: 'Internal Server Error.'})
     }
 })
 
@@ -120,5 +129,61 @@ router.get('/:id', requireAuthentication, async function (req, res, next) {
 })
 
 router.get('/:id/courses', requireAuthentication, async function(req, res, next) {
+    const userid = req.params.userid
+    const db = getDb()
+    const collection = db.collection("courses")
+    const userCollection = db.collection("users")
+    const admin = await checkAdmin(req.user)
 
+    if (req.user === req.params.userid || admin === true) {
+        try {
+            const user = await userCollection.find({ _id: new ObjectId(userid)}).toArray()
+            const userCourses = await collection.find({ownerId: user[0].id}).toArray()
+
+            if (userCourses.length !== 0) {
+                res.status(200).json({
+                    courses: userCourses
+                })
+            } else {
+                next()
+            }
+        }
+    }
+})
+
+router.get('/:id/assignments', requireAuthentication, async function(req, res, next) {
+    const admin = await checkAdmin(req.user.userid)
+    
+    if (req.user === req.params.userid || admin) {
+        const userid = req.params.userid
+        const db = getDb()
+        const collection = db.collection("photos")
+        const userCollection = db.collection("users")
+
+        const user = await userCollection.find({_id: new ObjectId(userid)}).toArray()
+        const userPhotos = await collection.find({userId: user[0].id}).toArray()
+
+        if(userPhotos.length !== 0){
+            res.status(200).json({
+                photos: userPhotos
+            })
+        } else {
+           next()
+        }
+    } else {
+        res.status(403).send({ error: "Cannot access specified resource."})
+    }
+})
+
+router.delete('/:id', async function (req, res, next) {
+    const db = getDb()
+    const collection = db.collection("users")
+    const userid = req.params.userid
+
+    const deleteStatus = await collection.deleteOne({_id: new ObjectId(userid)})
+    if (deleteStatus) {
+        res.status(204).end()
+    } else {
+        next()
+    }
 })

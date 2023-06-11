@@ -25,6 +25,31 @@ async function getAssignmentsByCourseId(id) {
 }
 exports.getAssignmentsByCourseId = getAssignmentsByCourseId
 
+async function getCoursesByStudentId(id) {
+    id = new ObjectId(id);
+    try {
+        const courses = await Course.find({ students: id })
+        console.log("== courses:", courses)
+        return courses
+    } catch (err) {
+        console.log(`Error getting courses from student id: ${err}`)
+        return null;
+    }
+}
+exports.getCoursesByStudentId = getCoursesByStudentId
+
+async function getCoursesByInstructorId(id) {
+    id = new ObjectId(id);
+    try {
+        const courses = await Course.find({ instructorId: id})
+        console.log("== courses:", courses);
+        return courses;
+    } catch (err) {
+        console.log(`Error getting courses from instructor id: ${err}`)
+        return null;
+    }
+}
+exports.getCoursesByInstructorId = getCoursesByInstructorId
 
 async function bulkInsertNewCourses(courses) {
     const coursesToInsert = courses.map(function (courses) {
