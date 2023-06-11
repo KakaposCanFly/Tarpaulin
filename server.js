@@ -15,35 +15,46 @@ const redisClient = redis.createClient({
 
 const rateLimitWindowMillis = 60000
 const rateLimitMaxRequests = 10
+const AuthenticatedLimitMaxRequests = 30
 const rateLimitRefreshRate = rateLimitMaxRequests / rateLimitWindowMillis
+const AuthenticatedLimitRefreshRate = AuthenticatedLimitMaxRequests / rateLimitWindowMillis
 
 async function rateLimit(req, res, next) {
+    let loginType = req.user && req.user.email ? req.user.email : req.ip 
+    let maxLimit = req.user && req.user.email ? AuthenticatedLimitMaxRequests : rateLimitMaxRequests // 10 or 30 requests per minute
+    let refreshRate = req.user && req.user.email ? AuthenticatedLimitRefreshRate : rateLimitRefreshRate // switches refresh rate between normal and 30
+
+    console.log(" -- loginType:", loginType)
+    console.log(" -- maxLimit:", maxLimit)
+    console.log(" -- refreshRate:", refreshRate)
+
     let tokenBucket
     try {
-        tokenBucket = await redisClient.hGetAll(req.ip)
+        tokenBucket = await redisClient.hGetAll(loginType)
+        console.log(" -- tokentBucket:" tokenBucket)
     } catch (err) {
         next()
         return
     }
     tokenBucket = {
-        tokens: parseFloat(tokenBucket.tokens) || rateLimitMaxRequests,
+        tokens: parseFloat(tokenBucket.tokens) || maxLimit,
         last: parseFloat(tokenBucket.last) || Date.now()
     }
     const timeStamp = Date.now()
     const ellapsedTime = timeStamp - tokenBucket.last
-    tokenBucket.tokens += ellapsedTime * rateLimitRefreshRate
-    tokenBucket.tokens = Math.min(tokenBucket.tokens, rateLimitMaxRequests)
+    tokenBucket.tokens += ellapsedTime * refreshRate
+    tokenBucket.tokens = Math.min(tokenBucket.tokens, maxLimit)
     tokenBucket.last = timeStamp
 
     if (tokenBucket.tokens >= 1) {
         tokenBucket.tokens -= 1
-        await redisClient.hSet(req.ip, [
+        await redisClient.hSet(loginType, [
             ["tokens", tokenBucket.tokens],
             ["last", tokenBucket.last]
         ])
         next()
     } else {
-        await redisClient.hSet(req.ip, [
+        await redisClient.hSet(loginType, [
             ["tokens", tokenBucket.tokens],
             ["last", tokenBucket.last]
         ])
@@ -53,6 +64,7 @@ async function rateLimit(req, res, next) {
     }
 
 }
+app.use(loginType)
 app.use(rateLimit)
 
 app.use(express.json());
