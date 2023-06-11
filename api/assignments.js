@@ -22,8 +22,8 @@ exports.router = router;
 
 // auth
 router.post('/', async function (req, res, next) {
-    console.log("body: ", req.body)
-    console.log("schema: ", AssignmentSchema)
+    // console.log("body: ", req.body)
+    // console.log("schema: ", AssignmentSchema)
     if (validateAgainstSchema(req.body, AssignmentSchema)) {
         try {
             const resultId = await insertNewAssignment(req.body)
@@ -146,18 +146,29 @@ router.post('/:id/submissions', upload.single("file"), async function (req, res,
                 msg: "Cannot add grade in initial submission post"
             })
         }
+        const reqBody = {
+            assignmentId: new ObjectId(req.body.assignmentId),
+            studentId: new ObjectId(req.body.studentId)
+        }
         try {
-            const resultId = await insertNewSubmission(req.body)
+            const submissionId = await insertNewSubmission(reqBody)
             const file = {
                 contentType: req.file.mimetype,
                 filename: req.file.filename,
                 path: req.file.path,
-                submissionId: req.body.submissionId
+                submissionId: new ObjectId(req.body.submissionId)
             }
             //Dev Note: May want to nest a try/catch block for this
             const fileId = await saveFile(file)
+
+            //Insert submissionId into submission list in assignment object
+            const db = getDb()
+            const collection = db.collection("assignments")
+
+            const updateStatus = await collection.updateOne({ _id: new ObjectId(req.params.id)}, {$push: {submissions: submissionId}})
+            
             res.status(201).json({
-                id: resultId,
+                id: submissionId,
             });
         } catch (err) {
             next(err)
@@ -175,7 +186,7 @@ router.get('/:id/submissions', async function (req, res, next) {
     const db = getDb()
     const collection = db.collection("submissions")
     try {
-        const submissions = await collection.find({ assignmentId: req.params.id }).toArray()        
+        const submissions = await collection.find({ assignmentId: new ObjectId(req.params.id) }).toArray()        
         if (submissions) {
             res.status(200).json(submissions)
         }
