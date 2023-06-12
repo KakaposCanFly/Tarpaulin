@@ -62,39 +62,43 @@ router.get('/', async function (req, res) {
 });
 
 // --> admin or instructor authentication (adding grades)
+//router.patch('/:id', requireAuthentication, async function (req, res, next) {
+//    const db = getDb()
+//    console.log("req.body: ", req.body)
+//    console.log("id param: ", req.params)
+//    const assignment = await getAssignmentById(req.body.assignmentId)
+//    console.log("assignment: ", assignment)
+//    const collection = db.collection("courses")
+//    const course = await collection.find({ _id: new ObjectId(assignment.courseId) })
+//    const instructorId = course.instructorId
+
+//    if (req.user.role === "admin" || (req.user.role === "instructor" && instructorId === req.user.id)) {
+//        if (validateAgainstSchema(req.body, SubmissionUpdateSchema)) {
+//            try {
+//                const submission = await getSubmissionById(req.params.id)
+//                if (submission) {
+//                    await updateSubmissionById(req.params.id, req.body)
+//                    res.status(200).end()
+//                }
+//                else {
+//                    next()
+//                }
+//            } catch (err) {
+//                next(err)
+//            }
+//        }
+//        else {
+//            res.status(400).json({
+//                error: "Request body is not a valid submission object"
+//            })
+//        }
+//    } else {
+//        res.status(403).json({ error: "Unauthorized to add grades."})
+//    }
+//})
+
 router.patch('/:id', requireAuthentication, async function (req, res, next) {
     const db = getDb()
-    console.log("req.body: ", req.body)
-    console.log("id param: ", req.params)
-    const assignment = await getAssignmentById(req.body.assignmentId)
-    console.log("assignment: ", assignment)
-    const collection = db.collection("courses")
-    const course = await collection.find({ _id: new ObjectId(assignment.courseId) })
-    const instructorId = course.instructorId
-
-    if (req.user.role === "admin" || (req.user.role === "instructor" && instructorId === req.user.id)) {
-        if (validateAgainstSchema(req.body, SubmissionUpdateSchema)) {
-            try {
-                const submission = await getSubmissionById(req.params.id)
-                if (submission) {
-                    await updateSubmissionById(req.params.id, req.body)
-                    res.status(200).end()
-                }
-                else {
-                    next()
-                }
-            } catch (err) {
-                next(err)
-            }
-        }
-        else {
-            res.status(400).json({
-                error: "Request body is not a valid submission object"
-            })
-        }
-    } else {
-        res.status(403).json({ error: "Unauthorized to add grades."})
-    }
 })
 
 /*

@@ -24,7 +24,7 @@ const { getCoursesByStudentId } = require('../models/course');
 exports.router = router;
 
 // auth --> admin or instructor id needs to match course id
-router.post('/', async function (req, res, next) {
+router.post('/', requireAuthentication, async function (req, res, next) {
     if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString() && req.body.courseId.toString() === course.instructorId.toString())) {
         if (validateAgainstSchema(req.body, AssignmentSchema)) {
             try {
@@ -80,7 +80,7 @@ router.get('/:id', async function (req, res, next) {
 })
 
 // auth
-router.patch('/:id', async function (req, res, next) {
+router.patch('/:id', requireAuthentication, async function (req, res, next) {
     if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString() && req.body.courseId.toString() === course.instructorId.toString())) {
         if (validateAgainstSchema(req.body, AssignmentSchema)) {
             try {
@@ -107,7 +107,7 @@ router.patch('/:id', async function (req, res, next) {
 })
 
 // auth
-router.delete('/:id', async function (req, res, next) {
+router.delete('/:id', requireAuthentication, async function (req, res, next) {
     if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString() && req.body.courseId.toString() === course.instructorId.toString())) {
         try {
             const assignment = await getAssignmentById(req.params.id)
