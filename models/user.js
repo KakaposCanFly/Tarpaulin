@@ -21,7 +21,7 @@ exports.UserSchema = UserSchema
 /*
  * Insert a new User into the DB
  */
-exports.insertNewUser = async function (user) {
+async function insertNewUser(user) {
     try {
         const userInsert = extractValidFields(user, UserSchema)
         const hash = await bcrypt.hash(user.password, 8);
@@ -41,6 +41,7 @@ exports.insertNewUser = async function (user) {
         return null
     }
 }
+exports.insertNewUser = insertNewUser
 
 /*
  * Fetch a user from the DB based on user ID.
@@ -78,6 +79,7 @@ exports.getUserByEmail = getUserByEmail
 
 exports.validateUser = async function (email, password) {
     const user = await getUserByEmail(email, true)
+    console.log("user", user)
 
     //once we know a user exists, compare plaintext and hashed + salted password 
     //returns true -> if passwords match 
@@ -87,11 +89,10 @@ exports.validateUser = async function (email, password) {
 }
 
 exports.bulkInsertNewUsers = async function (users) {
-    const usersToInsert = users.map(function (user) {
-        return extractValidFields(user, UserSchema)
-    })
-    const db = getDb()
-    const collection = db.collection('users')
-    const result = await collection.insertMany(usersToInsert)
-    return result.insertedIds
+    const resultIds = []
+    for (let i = 0; i < users.length; i++) {
+        const currResult = await insertNewUser(users[i])
+        resultIds.push(currResult)
+    }
+    return resultIds
 }
