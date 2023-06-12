@@ -65,11 +65,11 @@ async function getCourseRoster(courseid) {
 
     const course = await collection.find({_id: new ObjectId(courseid)}).toArray()
     const studentIds = course[0].students 
-    const studentCollection = db.collection('students')
-    var roster = ""
+    const studentCollection = db.collection('users')
+    let roster = ""
    
-    for(var i = 0; i < studentIds.length; i++){
-        var student = await studentCollection.find({_id: new ObjectId(studentIds[i])}).toArray()
+    for(let i = 0; i < studentIds.length; i++){
+        let student = await studentCollection.find({_id: new ObjectId(studentIds[i])}).toArray()
         roster = roster + `${studentIds[i]},${student[0].name},${student[0].email}\n`
     }
 
@@ -82,7 +82,7 @@ async function getCourseRoster(courseid) {
 router.get('/', async function (req, res) {
     //questions: are all parameters (except for page required?)
     // parameters: page || 1, subject, number, term 
-    var query = {}
+    let query = {}
 
     //build query 
     if(req.query.subject){
@@ -138,8 +138,8 @@ router.get('/:courseid', async function (req, res, next){
 
     if (ObjectId.isValid(req.params.courseid)) {
         const courseInfo = await getCourseById(req.params.courseid)
-
-        if(courseInfo.length !== 0) {
+        console.log("CourseInfo: ", courseInfo)
+        if(!!courseInfo.course) {
             res.status(200).json(courseInfo)
         }
         else{
@@ -226,19 +226,22 @@ router.delete("/:courseid", requireAuthentication, async function (req, res, nex
  */
 
 router.get("/:courseid/students", requireAuthentication, async function (req, res, next){
-    if (req.user == req.params.courseid) {
+    const courseId = req.params.courseid
+    const course = await getCourseById(courseId)
+    if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString()) {
         if(ObjectId.isValid(req.params.courseid)) {
-            var students = []
+            let students = []
 
             const db = getDb()
-            const collection = db.collection("students")
+            const collection = db.collection("users")
 
             const course = await getCourseById(req.params.courseid)
             const studentsIds = course.course.students
+            console.log("course: ", course)
 
             if(studentsIds.length > 0){
-                for(var i = 0; i < studentsIds.length; i++){
-                    var student = await collection.find({_id: new ObjectId(studentsIds[i])}).toArray()
+                for(let i = 0; i < studentsIds.length; i++){
+                    let student = await collection.find({_id: new ObjectId(studentsIds[i])}).toArray()
                     students.push(student[0])
                 }
         
@@ -259,28 +262,30 @@ router.get("/:courseid/students", requireAuthentication, async function (req, re
  * Route to update enrollment for a course, needs authentication.
  */
 router.post("/:courseid/students", requireAuthentication, async function (req, res, next){
+    const courseId = req.params.courseid
+    const course = await getCourseById(courseId)
     if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString()) {
         if(ObjectId.isValid(req.params.courseid)){
             const db = getDb()
             const collection = db.collection("courses")
-            const studentsCollection = db.collection("students")
-            var updateAddStatus = 0
-            var updateRemoveStatus = 0
+            const studentsCollection = db.collection("users")
+            let updateAddStatus = 0
+            let updateRemoveStatus = 0
     
             if((req.body.add && req.body.add.length > 0) || (req.body.remove && req.body.remove.length > 0)){
     
                 //if student needs to be added
                 if(req.body.add){
                     updateAddStatus = await collection.updateOne({_id: new ObjectId(req.params.courseid)}, {$push: {students: {$each: req.body.add}}})
-                    for (var i = 0; i < req.body.add.length; i++){
-                        await studentsCollection.updateOne({_id: new ObjectId(req.body.add[i])}, {$push: {courses: new ObjectId(req.params.courseid)}})
+                    for (let i = 0; i < req.body.add.length; i++){
+                        const status = await studentsCollection.updateOne({_id: new ObjectId(req.body.add[i])}, {$push: {courses: new ObjectId(req.params.courseid)}})
                     }
                 }
     
                 //if student needs to removed
                 if(req.body.remove){
                     updateRemoveStatus = await collection.updateOne({_id: new ObjectId(req.params.courseid)}, {$pull: {students: {$in: req.body.remove}}})
-                    for (var i = 0; i < req.body.remove.length; i++){
+                    for (let i = 0; i < req.body.remove.length; i++){
                         await studentsCollection.updateOne({_id: new ObjectId(req.body.remove[i])}, {$pull: {courses: new ObjectId(req.params.courseid)}})
                     }
                 }
@@ -310,7 +315,7 @@ router.get("/:courseid/roster", requireAuthentication, async function (req, res,
         const course = await getCourseById(courseId)
         if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() == course.instructorId.toString()) {
             try {
-                var roster = await getCourseRoster(req.params.courseid)
+                let roster = await getCourseRoster(req.params.courseid)
                 if (roster) {
                     res.status(200).type("csv").send(roster)
                 } else {

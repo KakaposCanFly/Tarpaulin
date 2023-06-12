@@ -160,8 +160,9 @@ router.post('/:id/submissions', requireAuthentication, upload.single("file"), as
     }
     if (req.body && req.body.studentId && req.params.id) {
         const courseId = req.body.courseId
-        const coursesEnrolled = await getCoursesByStudentId(req.body.studentId) 
+        const coursesEnrolled = await getCoursesByStudentId(req.body.studentId)
         // check user is in course
+        console.log("Courses enrolled array: ", coursesEnrolled)
         const check = coursesEnrolled.some(course => course._id === courseId)
         // need to check if assignment is in the course?
         if (check) {
@@ -213,18 +214,30 @@ router.post('/:id/submissions', requireAuthentication, upload.single("file"), as
 })
 
 // Get all submissions for specified assignment auth 
-router.get('/:id/submissions', async function (req, res, next) {
+router.get('/:id/submissions', requireAuthentication, async function (req, res, next) {
     const db = getDb()
-    const collection = db.collection("submissions")
-    try {
-        const submissions = await collection.find({ assignmentId: new ObjectId(req.params.id) }).toArray()        
-        if (submissions) {
-            res.status(200).json(submissions)
+    const submissionCollection = db.collection("submissions")
+    const coursesCollection = db.collection("courses")
+    const assignment = await getAssignmentById(req.params.id)
+    console.log("Assignment: ", assignment)
+    const course = await coursesCollection.find({ _id: new ObjectId(assignment.courseId) })
+    const instructorId = course.instructorId
+
+    if (req.user.role === "admin" || (req.user.role === "instructor" && instructorId === req.user.id)) {
+        
+        try {
+            const submissions = await submissionCollection.find({ assignmentId: new ObjectId(req.params.id) }).toArray()        
+            if (submissions) {
+                res.status(200).json(submissions)
+            }
+            else {
+                next()
+            }
+        } catch (err) {
+            next(err)
         }
-        else {
-            next()
-        }
-    } catch (err) {
-        next(err)
+    } else {
+        res.status(403).json({ error: "Unauthorized access to assignment submissions."})
     }
+    
 })

@@ -24,6 +24,7 @@ exports.getAssignmentById = async function (id) {
     const db = getDb()
     const collection = db.collection("assignments")
     const result = await collection.find({ _id: new ObjectId(id) }).toArray()
+    console.log("result: ", result)
     return result[0]
 }
 

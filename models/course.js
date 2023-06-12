@@ -26,10 +26,12 @@ async function getAssignmentsByCourseId(id) {
 exports.getAssignmentsByCourseId = getAssignmentsByCourseId
 
 async function getCoursesByStudentId(id) {
+    const db = getDb()
+    const collection = db.collection('users')
     id = new ObjectId(id);
     try {
-        const courses = await Course.find({ students: id })
-        console.log("== courses:", courses)
+        const student = await collection.find({ _id: id }).toArray()
+        const courses = student[0].courses
         return courses
     } catch (err) {
         console.log(`Error getting courses from student id: ${err}`)

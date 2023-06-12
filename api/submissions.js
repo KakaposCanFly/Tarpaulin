@@ -63,8 +63,13 @@ router.get('/', async function (req, res) {
 
 // --> admin or instructor authentication (adding grades)
 router.patch('/:id', requireAuthentication, async function (req, res, next) {
-    const assignment = getAssignmentById(req.body.assignmentId)
-    const course = collection.find({ _id: new ObjectId(assignment.courseId) })
+    const db = getDb()
+    console.log("req.body: ", req.body)
+    console.log("id param: ", req.params)
+    const assignment = await getAssignmentById(req.body.assignmentId)
+    console.log("assignment: ", assignment)
+    const collection = db.collection("courses")
+    const course = await collection.find({ _id: new ObjectId(assignment.courseId) })
     const instructorId = course.instructorId
 
     if (req.user.role === "admin" || (req.user.role === "instructor" && instructorId === req.user.id)) {
