@@ -98,7 +98,25 @@ router.get('/', async function (req, res) {
 //})
 
 router.patch('/:id', requireAuthentication, async function (req, res, next) {
-    const db = getDb()
+    //if ((req.user.role === "admin") ||
+    //    (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString()
+    //    && req.body.courseId.toString() === course.instructorId.toString()))
+    try {
+        const db = getDb()
+        const collection = db.collection("submissions")
+        const submission = await getSubmissionById(req.params.id)
+        if (submission) {
+            await collection.updateOne(
+                { _id: new ObjectId(req.params.id) },
+                { $set: { grade: req.body.grade } }
+            )
+            res.status(200).end()
+        } else {
+            next()
+        }
+    } catch (err) {
+        next(err)
+    }
 })
 
 /*
