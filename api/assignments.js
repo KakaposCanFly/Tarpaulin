@@ -176,6 +176,11 @@ router.post('/:id/submissions', requireAuthentication, upload.single("file"), as
     if (req.body && req.body.studentId && req.params.id) {
         const courseId = req.body.courseId
         const coursesEnrolled = await getCoursesByStudentId(req.body.studentId)
+        if (coursesEnrolled == null) {
+            res.status(400).send({
+                msg: "Student is not enrolled in any courses"
+            })
+        }
         // check user is in course
         const check = coursesEnrolled.some(course => course._id === courseId)
         // need to check if assignment is in the course?
