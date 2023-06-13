@@ -138,7 +138,6 @@ router.get('/:courseid', async function (req, res, next){
 
     if (ObjectId.isValid(req.params.courseid)) {
         const courseInfo = await getCourseById(req.params.courseid)
-        console.log("CourseInfo: ", courseInfo)
         if(!!courseInfo.course) {
             res.status(200).json(courseInfo)
         }
@@ -158,12 +157,12 @@ router.put('/:courseid', requireAuthentication, async function (req, res, next){
     const courseId = req.params.courseid
     if (ObjectId.isValid(courseId)) {
         const course = await getCourseById(courseId)
-        if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString())) {
+        if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.course.instructorId.toString())) {
             if(validateAgainstSchema(req.body, courseSchema)){
                 const db = getDb()
                 const collection = db.collection("courses")
 
-                const updateStatus = collection.replaceOne(
+                const updateStatus = await collection.replaceOne(
                     { _id: new ObjectId(req.params.courseid) },
                     req.body
                 )
@@ -228,7 +227,7 @@ router.delete("/:courseid", requireAuthentication, async function (req, res, nex
 router.get("/:courseid/students", requireAuthentication, async function (req, res, next){
     const courseId = req.params.courseid
     const course = await getCourseById(courseId)
-    if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString()) {
+    if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() === course.course.instructorId.toString()) {
         if(ObjectId.isValid(req.params.courseid)) {
             let students = []
 
@@ -237,7 +236,6 @@ router.get("/:courseid/students", requireAuthentication, async function (req, re
 
             const course = await getCourseById(req.params.courseid)
             const studentsIds = course.course.students
-            console.log("course: ", course)
 
             if(studentsIds.length > 0){
                 for(let i = 0; i < studentsIds.length; i++){
@@ -264,7 +262,7 @@ router.get("/:courseid/students", requireAuthentication, async function (req, re
 router.post("/:courseid/students", requireAuthentication, async function (req, res, next){
     const courseId = req.params.courseid
     const course = await getCourseById(courseId)
-    if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString()) {
+    if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() === course.course.instructorId.toString()) {
         if(ObjectId.isValid(req.params.courseid)){
             const db = getDb()
             const collection = db.collection("courses")
@@ -313,7 +311,7 @@ router.get("/:courseid/roster", requireAuthentication, async function (req, res,
     const courseId = req.params.courseid
     if (ObjectId.isValid(req.params.courseid)) {
         const course = await getCourseById(courseId)
-        if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() == course.instructorId.toString()) {
+        if (req.user.role === "admin" || req.user.role === "instructor" && req.user.id.toString() == course.course.instructorId.toString()) {
             try {
                 let roster = await getCourseRoster(req.params.courseid)
                 if (roster) {

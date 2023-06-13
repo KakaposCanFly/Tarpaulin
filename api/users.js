@@ -49,7 +49,7 @@ router.post('/', getEmail, async function (req, res) {
     }
     try {
         const id = await insertNewUser(req.body);
-        console.log("id:", id);
+        // console.log("id:", id);
         if (id) {
             res.status(201).send({_id: id})
         } else {
@@ -101,7 +101,7 @@ router.get('/:id', requireAuthentication, async function (req, res, next) {
         let courses
         if (user.email === req.user.email) {
 
-            console.log("user: ", user)
+            // console.log("user: ", user)
             res.status(200).json(
                 user
             )
