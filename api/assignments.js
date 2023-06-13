@@ -25,7 +25,12 @@ exports.router = router;
 
 // auth --> admin or instructor id needs to match course id
 router.post('/', requireAuthentication, async function (req, res, next) {
-    if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString() && req.body.courseId.toString() === course.instructorId.toString())) {
+    const db = getDb()
+    const coursesCollection = db.collection("courses")
+    const courseArray = await coursesCollection.find({ _id: new ObjectId(req.body.courseId) }).toArray()
+    const course = courseArray[0]
+    // console.log("Course: ", course)
+    if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString())) {
         if (validateAgainstSchema(req.body, AssignmentSchema)) {
             try {
                 const resultId = await insertNewAssignment(req.body)
@@ -81,7 +86,11 @@ router.get('/:id', async function (req, res, next) {
 
 // auth
 router.patch('/:id', requireAuthentication, async function (req, res, next) {
-    if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString() && req.body.courseId.toString() === course.instructorId.toString())) {
+    const db = getDb()
+    const coursesCollection = db.collection("courses")
+    const courseArray = await coursesCollection.find({ _id: new ObjectId(req.body.courseId) }).toArray()
+    const course = courseArray[0]
+    if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString())) {
         if (validateAgainstSchema(req.body, AssignmentSchema)) {
             try {
                 const assignment = await getAssignmentById(req.params.id)
@@ -108,7 +117,13 @@ router.patch('/:id', requireAuthentication, async function (req, res, next) {
 
 // auth
 router.delete('/:id', requireAuthentication, async function (req, res, next) {
-    if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString() && req.body.courseId.toString() === course.instructorId.toString())) {
+    const db = getDb()
+    const coursesCollection = db.collection("courses")
+    const assignment = await getAssignmentById(req.params.id)
+    const courseArray = await coursesCollection.find({ _id: new ObjectId(assignment.courseId) }).toArray()
+    const course = courseArray[0]
+    console.log("course: ", course)
+    if (req.user.role === "admin" || (req.user.role === "instructor" && req.user.id.toString() === course.instructorId.toString())) {
         try {
             const assignment = await getAssignmentById(req.params.id)
             if (assignment) {
@@ -162,7 +177,6 @@ router.post('/:id/submissions', requireAuthentication, upload.single("file"), as
         const courseId = req.body.courseId
         const coursesEnrolled = await getCoursesByStudentId(req.body.studentId)
         // check user is in course
-        console.log("Courses enrolled array: ", coursesEnrolled)
         const check = coursesEnrolled.some(course => course._id === courseId)
         // need to check if assignment is in the course?
         if (check) {
@@ -219,9 +233,8 @@ router.get('/:id/submissions', requireAuthentication, async function (req, res, 
     const submissionCollection = db.collection("submissions")
     const coursesCollection = db.collection("courses")
     const assignment = await getAssignmentById(req.params.id)
-    console.log("Assignment: ", assignment)
-    const course = await coursesCollection.find({ _id: new ObjectId(assignment.courseId) })
-    const instructorId = course.instructorId
+    const courseArray = await coursesCollection.find({ _id: new ObjectId(assignment.courseId) }).toArray()
+    const instructorId = courseArray[0].instructorId
 
     if (req.user.role === "admin" || (req.user.role === "instructor" && instructorId === req.user.id)) {
         

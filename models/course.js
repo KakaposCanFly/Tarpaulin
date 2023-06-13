@@ -9,8 +9,7 @@ const courseSchema = {
     title: {required: true},
     term: {required: true},
     instructorId: {required: true},
-    students: {required: true},
-    assignments: {required: true}
+    students: {required: true}
 }
 
 exports.courseSchema = courseSchema
@@ -44,7 +43,7 @@ async function getCoursesByInstructorId(id) {
     id = new ObjectId(id);
     try {
         const courses = await Course.find({ instructorId: id})
-        console.log("== courses:", courses);
+        // console.log("== courses:", courses);
         return courses;
     } catch (err) {
         console.log(`Error getting courses from instructor id: ${err}`)

@@ -56,7 +56,7 @@ exports.insertNewSubmission = async function (submission) {
         ...submission,
         timestamp: timestamp
     }
-    console.log("submissionData:", submissionData)
+    // console.log("submissionData:", submissionData)
     submission = extractValidFields(submissionData, SubmissionSchema)
     const db = getDb()
     const collection = db.collection("submissions")

@@ -49,7 +49,7 @@ exports.insertNewUser = insertNewUser
 async function getUserById (id, includePassword) {
     const db = getDb()
     const collection = db.collection('users')
-    console.log("id: ", id)
+    // console.log("id: ", id)
     if (!ObjectId.isValid(id)) {
         return null
     } else {
@@ -58,7 +58,7 @@ async function getUserById (id, includePassword) {
             .find({ _id: new ObjectId(id) })
             .project(includePassword ? {} : { password: 0 })
             .toArray()
-        console.log("found user: ", results[0])
+        // console.log("found user: ", results[0])
         return results[0]
     }
 }
@@ -79,7 +79,7 @@ exports.getUserByEmail = getUserByEmail
 
 exports.validateUser = async function (email, password) {
     const user = await getUserByEmail(email, true)
-    console.log("user", user)
+    // console.log("user", user)
 
     //once we know a user exists, compare plaintext and hashed + salted password 
     //returns true -> if passwords match 
